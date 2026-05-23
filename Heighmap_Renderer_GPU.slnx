@@ -1,7 +1,6 @@
 <Solution>
   <Configurations>
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
-  <Project Path="Heighmap_Renderer_GPU.vcxproj" />
+  <Project Path="Heighmap_Renderer_GPU.vcxproj" Id="f4704143-6bb8-4314-aed5-068548e4200b" />
 </Solution>
