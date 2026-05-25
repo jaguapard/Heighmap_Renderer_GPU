@@ -9,7 +9,6 @@ class Graphics
 {
 public:
 	Graphics(uint32_t w, uint32_t h);
-private:
 	SDL_Window* window;
 	uint32_t w, h;
 
