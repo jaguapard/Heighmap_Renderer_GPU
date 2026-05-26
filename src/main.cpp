@@ -6,6 +6,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include "Graphics.h"
+#include "Game.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -18,6 +19,11 @@ int main(int argc, char* argv[])
 	try
 	{
 		Graphics gfx(2560, 1440);
+		Game game(gfx);
+		while (true)
+		{
+			game.update();
+		}
 	}
 	catch (const std::exception& e)
 	{

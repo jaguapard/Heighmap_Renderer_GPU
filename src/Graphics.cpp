@@ -5,10 +5,10 @@ Graphics::Graphics(uint32_t w, uint32_t h)
 {
     this->w = w;
     this->h = h;
-    window = SDL_CreateWindow("SDL3 + D3D11 Pixel Display", w, h, 0);
-    if (!window) RAISE_ERROR("SDL_CreateWindow failed");
+    this->window = SDL_CreateWindow("Heightmap renderer", w, h, 0);
+    if (!this->window) RAISE_ERROR("SDL_CreateWindow failed");
 
-    SDL_PropertiesID props = SDL_GetWindowProperties(window);
+    SDL_PropertiesID props = SDL_GetWindowProperties(this->window);
     if (!props) RAISE_ERROR("SDL_GetWindowProperties returned NULL");
 
     void* rawHwnd = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
@@ -48,10 +48,4 @@ Graphics::Graphics(uint32_t w, uint32_t h)
     vp.MinDepth = 0;
     vp.MaxDepth = 1;
     this->deviceContext->RSSetViewports(1, &vp);
-
-    this->deviceContext->OMSetRenderTargets(1, this->mainRenderTargetView.GetAddressOf(), nullptr);
-    float clear[4] = { 1,0,0,1 };
-    this->deviceContext->ClearRenderTargetView(this->mainRenderTargetView.Get(), clear);
-
-    this->swapChain->Present(1, 0);
 }
