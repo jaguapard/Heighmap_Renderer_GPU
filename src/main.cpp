@@ -1,0 +1,42 @@
+#include <vector>
+#include <string>
+#include <sstream>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_system.h>
+#include <d3d11.h>
+#include <d3dcompiler.h>
+#include "Graphics.h"
+#include "Game.h"
+
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "SDL3.lib")
+#pragma comment(lib, "SDL3_image.lib")
+#pragma comment(lib, "SDL3_ttf.lib")
+
+int main(int argc, char* argv[])
+{
+	try
+	{
+		Graphics gfx(2560, 1440);
+		Game game(gfx);
+		while (true)
+		{
+			SDL_Event ev;
+			while (SDL_PollEvent(&ev))
+			{
+
+			}
+			game.update();
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::stringstream ss;
+		char strerror_out[8192] = { 0 };
+		strerror_s(strerror_out, sizeof(strerror_out), errno);
+		ss << e.what() << "\nSDL error reports: " << SDL_GetError() << "\n" << "strerror: " << strerror_out << "\n";
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", ss.str().c_str(), nullptr);
+	}
+	return 0;
+}
