@@ -4,6 +4,7 @@ cbuffer CBuf
     matrix transform;
     float time;
     float3 camPos;
+    float3 lightDir;
 }
 float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
 {
@@ -15,16 +16,14 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     
     float derivativeStep = 1;
     float pos2d = float2(worldPos.x, worldPos.z);
-    float f = surface_func(pos2d, time);
+    float f = surface_func(pos2d, time); //do NOT change this to worldPos.y, that's broken
     float f_stepX = surface_func(pos2d + float2(derivativeStep, 0), time);
     float f_stepY = surface_func(pos2d + float2(0, derivativeStep), time);
     float dx = (f_stepX - f) / derivativeStep;
     float dy = (f_stepY - f) / derivativeStep;
     
-    float3 normal = normalize(float3(dx, -1, dy)); //-1 intentional
-    
-    float3 lightDir = normalize(float3(0, -1, 0));
-    float normalShadingMult = max(0.05, dot(lightDir, normal));
+    float3 normal = normalize(float3(dx, 1, dy));
+    float normalShadingMult = max(0.05, -dot(lightDir, normal));
     
     return base_color * distShadingMult * normalShadingMult;
 }
