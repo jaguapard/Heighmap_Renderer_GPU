@@ -178,7 +178,6 @@ void Game::update(const std::vector<SDL_Event>& events)
 			float angAddY = event.motion.yrel * 1e-3;
 			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0); //TODO: wrap angles around multiples of PI
 			//this->camAng
-			
 		}
 	}
 	
@@ -231,15 +230,13 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
-	float r = std::fmod(this->gameTime, 10.0) / 10.0;
-	float g = std::fmod(this->gameTime, 20.0) / 20.0;
-	float b = std::fmod(this->gameTime, 30.0) / 30.0;
-
-	r = g = b = 0;
+	float r = 0;
+	float g = 0;
+	float b = 0;
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1, 0);
 
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
-	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
+	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get());
 }
