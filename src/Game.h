@@ -7,6 +7,7 @@ class Game
 {
 public:
 	Game(Graphics& gfx);
+	void handleEvent(SDL_Event& event);
 	void update();
 private:
 	Graphics& gfx;

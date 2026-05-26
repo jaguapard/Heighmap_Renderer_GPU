@@ -25,7 +25,12 @@ int main(int argc, char* argv[])
 			SDL_Event ev;
 			while (SDL_PollEvent(&ev))
 			{
-
+				game.handleEvent(ev);
+				if (ev.type == SDL_EVENT_QUIT)
+				{
+					SDL_Quit();
+					return 0;
+				}
 			}
 			game.update();
 		}
@@ -35,7 +40,7 @@ int main(int argc, char* argv[])
 		std::stringstream ss;
 		char strerror_out[8192] = { 0 };
 		strerror_s(strerror_out, sizeof(strerror_out), errno);
-		ss << e.what() << "\nSDL error reports: " << SDL_GetError() << "\n" << "strerror: " << strerror_out << "\n";
+		ss << e.what() << "\nSDL error: " << SDL_GetError() << "\n" << "strerror: " << strerror_out << "\n";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", ss.str().c_str(), nullptr);
 	}
 	return 0;

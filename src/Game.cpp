@@ -26,6 +26,11 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
 }
 
+void Game::handleEvent(SDL_Event& event)
+{
+
+}
+
 /*
 static Microsoft::WRL::ComPtr<ID3DBlob> CompileShaderFromFile(std::wstring path)
 {
