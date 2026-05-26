@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
 {
 	try
 	{
+		std::vector<SDL_Event> sdlEvents;
 		Graphics gfx(2560, 1440);
 		C_Input& input = C_Input::getInstance();
 		Game game(gfx);
@@ -30,14 +31,16 @@ int main(int argc, char* argv[])
 			while (SDL_PollEvent(&ev))
 			{
 				input.handleEvent(ev);
-				game.handleEvent(ev);
+				//game.handleEvent(ev);
+				sdlEvents.emplace_back(ev);
 				if (ev.type == SDL_EVENT_QUIT)
 				{
 					SDL_Quit();
 					return 0;
 				}
 			}
-			game.update();
+			game.update(sdlEvents);
+			sdlEvents.clear();
 		}
 	}
 	catch (const std::exception& e)

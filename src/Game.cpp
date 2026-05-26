@@ -75,7 +75,7 @@ static Microsoft::WRL::ComPtr<ID3DBlob> CompileShaderFromFile(std::wstring path)
     return blob;
 	}
 	*/
-void Game::update()
+void Game::update(const std::vector<SDL_Event>& events)
 {
 	uint64_t currTicks = SDL_GetTicksNS();
 	if (!this->prevTicks) {
@@ -90,6 +90,23 @@ void Game::update()
 	this->prevTicks = currTicks;
 
 	C_Input& inp = C_Input::getInstance();
+
+	bool mouseRelativeMode = SDL_GetWindowRelativeMouseMode(this->gfx.window);
+	for (auto& event : events)
+	{
+		if (mouseRelativeMode && event.type == SDL_EVENT_MOUSE_MOTION)
+		{
+			float angAddX = event.motion.xrel * 1e-3;
+			float angAddY = event.motion.yrel * 1e-3;
+			this->camAng += XMVectorSet(angAddX, 0, angAddY, 0);
+		}
+	}
+	
+	if (inp.wasButtonPressedOnThisFrame(SDL_SCANCODE_LCTRL))
+	{
+		SDL_SetWindowRelativeMouseMode(this->gfx.window, !mouseRelativeMode);
+	}
+
 	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng);
 
 	XMVECTOR camAdd = XMVectorZero();
@@ -107,9 +124,10 @@ void Game::update()
 		std::cout << this->camPos << "\n";
 	}
 	
-	XMMATRIX transformation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
-	transformation = XMMatrixMultiply(transformation, rotation);
-	transformation = XMMatrixMultiply(transformation, XMMatrixPerspectiveFovLH(3.14159/2, 16.f / 9.f, 0.001, 10000)); //TODO: near Z seems dangerously small
+	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX perspective = XMMatrixPerspectiveFovLH(3.14159 / 2, 16.f / 9.f, 0.001, 10000); //TODO: near Z seems dangerously small
+	
+	XMMATRIX transformation = rotation * translation * perspective;
 	transformation = XMMatrixTranspose(transformation);
 	//TODO: don't recreate this buffer every frame, update instead, it already has write access
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;

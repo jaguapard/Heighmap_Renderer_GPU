@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include <SDL3/SDL.h>
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -11,7 +12,7 @@ public:
 	Game(Graphics& gfx);
 	void beginNewFrame();
 	void handleEvent(SDL_Event& event);
-	void update();
+	void update(const std::vector<SDL_Event>& events);
 private:
 	Graphics& gfx;
 	uint64_t prevTicks = 0, startTicks = 0;
