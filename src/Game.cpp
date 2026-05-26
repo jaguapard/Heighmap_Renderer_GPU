@@ -124,7 +124,6 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	//TODO: don't recreate this buffer every frame, update instead, it already has write access
 	ConstantBuffer cb;
 	memset(&cb, 0, sizeof(cb));
 	D3D11_BUFFER_DESC cbd;
