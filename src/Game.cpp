@@ -40,21 +40,35 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
 
-	
+	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
+	//TODO: can probably generate this on GPU?
 	float fieldSize = 2000;
 	int subdivisions = 100;
-	float fieldStep = 10;
 	std::vector<Vertex> verts;
-	for (float y = -fieldSize / 2; y < fieldSize / 2; y += fieldStep)
+	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
 	{
-		for (float x = -fieldSize / 2; x < fieldSize / 2; x += fieldStep)
+		float sy = fieldSize / subdivisions * stepIndexY - fieldSize / 2;
+		float sny = fieldSize / subdivisions * (stepIndexY+1) - fieldSize / 2;
+		for (int stepIndexX = 0; stepIndexX < subdivisions; ++stepIndexX)
 		{
+			float sx = fieldSize / subdivisions * stepIndexX - fieldSize / 2;
+			float snx = fieldSize / subdivisions * (stepIndexX+1) - fieldSize / 2;
 			Vertex v;
-			v.x = x;
-			v.y = y;
+			v.x = sx;
+			v.y = sy;
+			verts.emplace_back(v);
+			v.x = snx;
+			verts.emplace_back(v);
+			v.y = sny;
+			verts.emplace_back(v);
+			verts.emplace_back(v); //yes, twice. It is shared by 2 triangles in a heightmap block
+			v.x = sx;
+			verts.emplace_back(v);
+			v.y = sy;
 			verts.emplace_back(v);
 		}
 	}
+	
 	this->vertexCount = verts.size();
 	D3D11_BUFFER_DESC vertexBufferDesc;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -171,7 +185,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f); //TODO: remove hardcoded aspect ratio
 	XMMATRIX transform = view * projection;
 	transform = XMMatrixTranspose(transform);
 
