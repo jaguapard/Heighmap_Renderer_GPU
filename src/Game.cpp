@@ -28,6 +28,13 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	};
 	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
+
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
+	D3D11_RASTERIZER_DESC rdsc = {};
+	rdsc.FillMode = D3D11_FILL_SOLID;
+	rdsc.CullMode = D3D11_CULL_NONE;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
+	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
 }
 
 void Game::beginNewFrame()
@@ -98,7 +105,9 @@ void Game::update(const std::vector<SDL_Event>& events)
 		{
 			float angAddX = event.motion.xrel * 1e-3;
 			float angAddY = event.motion.yrel * 1e-3;
-			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0);
+			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0); //TODO: wrap angles around multiples of PI
+			//this->camAng
+			
 		}
 	}
 	
