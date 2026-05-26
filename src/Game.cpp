@@ -4,9 +4,13 @@
 #include <cmath>
 #include "errors.h"
 #include "utils.h"
+#include "C_Input.h"
+#include <iostream>
 
+using namespace DirectX;
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
+	this->camPos = this->camAng = XMVectorZero();
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
@@ -24,8 +28,34 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	};
 	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
+
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
+	D3D11_RASTERIZER_DESC rdsc = {};
+	rdsc.FillMode = D3D11_FILL_SOLID;
+	rdsc.CullMode = D3D11_CULL_NONE;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
+	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
 }
 
+void Game::beginNewFrame()
+{
+	
+}
+
+void Game::handleEvent(SDL_Event& event)
+{
+
+}
+
+static std::ostream& operator<<(std::ostream& os, const XMVECTOR& v)
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		os << v.vector4_f32[i];
+		if (i != 3) os << ", ";
+	}
+	return os;
+}
 /*
 static Microsoft::WRL::ComPtr<ID3DBlob> CompileShaderFromFile(std::wstring path)
 {
@@ -52,7 +82,7 @@ static Microsoft::WRL::ComPtr<ID3DBlob> CompileShaderFromFile(std::wstring path)
     return blob;
 	}
 	*/
-void Game::update()
+void Game::update(const std::vector<SDL_Event>& events)
 {
 	uint64_t currTicks = SDL_GetTicksNS();
 	if (!this->prevTicks) {
@@ -65,6 +95,62 @@ void Game::update()
 	this->globalTime = (currTicks - startTicks) / 1e9;
 	this->gameTime += clampedDt;
 	this->prevTicks = currTicks;
+
+	C_Input& inp = C_Input::getInstance();
+
+	bool mouseRelativeMode = SDL_GetWindowRelativeMouseMode(this->gfx.window);
+	for (auto& event : events)
+	{
+		if (mouseRelativeMode && event.type == SDL_EVENT_MOUSE_MOTION)
+		{
+			float angAddX = event.motion.xrel * 1e-3;
+			float angAddY = event.motion.yrel * 1e-3;
+			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0); //TODO: wrap angles around multiples of PI
+			//this->camAng
+			
+		}
+	}
+	
+	if (inp.wasButtonPressedOnThisFrame(SDL_SCANCODE_LCTRL))
+	{
+		SDL_SetWindowRelativeMouseMode(this->gfx.window, !mouseRelativeMode);
+	}
+
+	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng);
+	XMVECTOR camAdd = XMVectorZero();
+	XMVECTOR right = XMVectorSet(rotation.m[0][0], rotation.m[0][1], rotation.m[0][2], 0.f);
+	XMVECTOR forward = XMVectorSet(rotation.m[2][0], rotation.m[2][1], rotation.m[2][2], 0.f);
+	if (inp.isButtonHeld(SDL_SCANCODE_W)) camAdd += forward;
+	if (inp.isButtonHeld(SDL_SCANCODE_S)) camAdd -= forward;
+	if (inp.isButtonHeld(SDL_SCANCODE_A)) camAdd -= right;
+	if (inp.isButtonHeld(SDL_SCANCODE_D)) camAdd += right;
+	if (inp.isButtonHeld(SDL_SCANCODE_Z)) camAdd -= XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	if (inp.isButtonHeld(SDL_SCANCODE_X)) camAdd += XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	if (XMVector3NotEqual(camAdd, XMVectorZero()))
+	{
+		this->camPos += XMVector3Normalize(camAdd) * this->flySpeed * clampedDt;
+		std::cout << this->camPos << "\n";
+	}
+	
+	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX view = translation * XMMatrixTranspose(rotation);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f);
+	XMMATRIX transform = view * projection;
+	transform = XMMatrixTranspose(transform);
+
+	//TODO: don't recreate this buffer every frame, update instead, it already has write access
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	D3D11_BUFFER_DESC cbd;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.ByteWidth = sizeof(XMMATRIX);
+	cbd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA csd;
+	csd.pSysMem = &transform;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
 	float r = std::fmod(this->gameTime, 10.0) / 10.0;
