@@ -14,7 +14,8 @@ struct Vertex {
 using namespace DirectX;
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
-	this->camPos = this->camAng = XMVectorZero();
+	this->camAng = XMVectorZero();
+	this->camPos = XMVectorSet(0, 100, 0, 0);
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
