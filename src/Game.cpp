@@ -91,12 +91,19 @@ void Game::update()
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
-	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"Shaders/BasicVS.cso";
+	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
 	DX_THROW_ON_FAIL(this->gfx.device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &vertexShader), "Create basic VS");
-
 	this->gfx.deviceContext->VSSetShader(vertexShader.Get(), nullptr, 0);
 
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+	Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
+	DX_THROW_ON_FAIL(D3DReadFileToBlob((Graphics::SHADERS_FOLDER + L"BasicPS.cso").c_str(), &psBlob), "Read basic PS blob");
+	DX_THROW_ON_FAIL(this->gfx.device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &pixelShader), "Create basic PS");
+	this->gfx.deviceContext->PSSetShader(pixelShader.Get(), nullptr, 0);
+
+	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
+
 	this->gfx.deviceContext->Draw(3, 0);
-	this->gfx.swapChain->Present(1, 0); //TODO: disable VSYNC later
+	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
 }
