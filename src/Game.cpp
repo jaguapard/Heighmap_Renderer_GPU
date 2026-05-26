@@ -7,10 +7,15 @@
 #include "C_Input.h"
 #include <iostream>
 
+struct Vertex {
+	float x, y;
+};
+
 using namespace DirectX;
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
-	this->camPos = this->camAng = XMVectorZero();
+	this->camAng = XMVectorZero();
+	this->camPos = XMVectorSet(0, 100, 0, 0);
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
@@ -35,6 +40,71 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	rdsc.CullMode = D3D11_CULL_NONE;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
+
+	D3D11_TEXTURE2D_DESC descDepth = {};
+	descDepth.Width = this->gfx.w;
+	descDepth.Height = this->gfx.h;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = DXGI_FORMAT_D32_FLOAT;
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateTexture2D(&descDepth, nullptr, &this->depthStencil), "Create depth stencil texture");
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+	descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Texture2D.MipSlice = 0;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilView(this->depthStencil.Get(), &descDSV, &this->depthStencilView), "Create depth stencil view");
+
+	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
+	//TODO: can probably generate this on GPU?
+	float fieldSize = 2000;
+	int subdivisions = 100;
+	std::vector<Vertex> verts;
+	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
+	{
+		float sy = fieldSize / subdivisions * stepIndexY - fieldSize / 2;
+		float sny = fieldSize / subdivisions * (stepIndexY+1) - fieldSize / 2;
+		for (int stepIndexX = 0; stepIndexX < subdivisions; ++stepIndexX)
+		{
+			float sx = fieldSize / subdivisions * stepIndexX - fieldSize / 2;
+			float snx = fieldSize / subdivisions * (stepIndexX+1) - fieldSize / 2;
+			Vertex v;
+			v.x = sx;
+			v.y = sy;
+			verts.emplace_back(v);
+			v.x = snx;
+			verts.emplace_back(v);
+			v.y = sny;
+			verts.emplace_back(v);
+			verts.emplace_back(v); //yes, twice. It is shared by 2 triangles in a heightmap block
+			v.x = sx;
+			verts.emplace_back(v);
+			v.y = sy;
+			verts.emplace_back(v);
+		}
+	}
+	
+	this->vertexCount = verts.size();
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
+
+	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
+	vertexBufferSubresourceData.pSysMem = verts.data();
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
+
+	UINT vbStrides[] = { sizeof(Vertex) };
+	UINT vbOffsets[] = { 0 };
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
+	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Game::beginNewFrame()
@@ -134,7 +204,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 10000.f);
 	XMMATRIX transform = view * projection;
 	transform = XMMatrixTranspose(transform);
 
@@ -152,7 +222,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
+	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
 	float r = std::fmod(this->gameTime, 10.0) / 10.0;
 	float g = std::fmod(this->gameTime, 20.0) / 20.0;
 	float b = std::fmod(this->gameTime, 30.0) / 30.0;
@@ -160,35 +230,8 @@ void Game::update(const std::vector<SDL_Event>& events)
 	r = g = b = 0;
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
+	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1, 0);
 
-
-	struct Vertex {
-		float x, y;
-	};
-	Vertex verts[] = {
-		{0.f,0.5f},
-		{0.5f,-0.5f},
-		{-0.5f,-0.5f},
-	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.ByteWidth = sizeof(verts);
-	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
-
-	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
-	vertexBufferSubresourceData.pSysMem = verts;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
-
-	UINT vbStrides[] = { sizeof(Vertex) };
-	UINT vbOffsets[] = { 0 };
-	this->gfx.deviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
-	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	this->gfx.deviceContext->Draw(3, 0);
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
 }
