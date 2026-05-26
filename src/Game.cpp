@@ -61,8 +61,8 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?
-	float fieldSize = 2000;
-	int subdivisions = 100;
+	float fieldSize = 20000;
+	int subdivisions = 400;
 	std::vector<Vertex> verts;
 	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
 	{
@@ -167,6 +167,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->prevTicks = currTicks;
 
 	C_Input& inp = C_Input::getInstance();
+	if (inp.wasCharPressedOnThisFrame('V')) this->vsyncEnabled ^= 1;
 
 	bool mouseRelativeMode = SDL_GetWindowRelativeMouseMode(this->gfx.window);
 	for (auto& event : events)
@@ -204,7 +205,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 10000.f);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 100000.f);
 	XMMATRIX transform = view * projection;
 	transform = XMMatrixTranspose(transform);
 
@@ -233,5 +234,5 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1, 0);
 
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
-	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
+	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
 }

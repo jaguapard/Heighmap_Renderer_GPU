@@ -19,7 +19,8 @@ private:
 	double gameTime = 0;
 	double globalTime = 0;
 
-	float flySpeed = 500;
+	bool vsyncEnabled = true;
+	float flySpeed = 2500;
 	UINT vertexCount;
 	DirectX::XMVECTOR camPos, camAng;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
