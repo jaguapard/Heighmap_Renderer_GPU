@@ -2,11 +2,14 @@
 #include <SDL3/SDL.h>
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <DirectXMath.h>
+
 class Graphics;
 class Game
 {
 public:
 	Game(Graphics& gfx);
+	void beginNewFrame();
 	void handleEvent(SDL_Event& event);
 	void update();
 private:
@@ -15,6 +18,7 @@ private:
 	double gameTime = 0;
 	double globalTime = 0;
 
+	DirectX::XMFLOAT3 camPos, camAng, camAdd;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;
 };

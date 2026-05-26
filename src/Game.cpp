@@ -4,9 +4,11 @@
 #include <cmath>
 #include "errors.h"
 #include "utils.h"
+#include "C_Input.h"
 
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
+	this->camPos = this->camAng = DirectX::XMFLOAT3(0, 0, 0);
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
@@ -26,8 +28,14 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
 }
 
+void Game::beginNewFrame()
+{
+	this->camAdd = { 0,0,0 };
+}
+
 void Game::handleEvent(SDL_Event& event)
 {
+	DirectX::XMFLOAT3 camAdd = { 0,0,0 };
 
 }
 

@@ -7,6 +7,7 @@
 #include <d3dcompiler.h>
 #include "Graphics.h"
 #include "Game.h"
+#include "C_Input.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -19,12 +20,16 @@ int main(int argc, char* argv[])
 	try
 	{
 		Graphics gfx(2560, 1440);
+		C_Input& input = C_Input::getInstance();
 		Game game(gfx);
 		while (true)
 		{
 			SDL_Event ev;
+			input.beginNewFrame();
+			game.beginNewFrame();
 			while (SDL_PollEvent(&ev))
 			{
+				input.handleEvent(ev);
 				game.handleEvent(ev);
 				if (ev.type == SDL_EVENT_QUIT)
 				{
