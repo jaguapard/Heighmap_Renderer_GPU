@@ -60,12 +60,12 @@ void Game::update()
 
 
 	struct Vertex {
-		float x, y, z;
+		float x, y;
 	};
 	Vertex verts[] = {
-		{0.f,0.5f,1.f},
-		{0.5f,-0.5f,1.f},
-		{-0.5f,-0.5f,1.f},
+		{0.f,0.5f},
+		{0.5f,-0.5f},
+		{-0.5f,-0.5f},
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 
@@ -106,7 +106,7 @@ void Game::update()
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> vsInputLayout;
 	const D3D11_INPUT_ELEMENT_DESC vsInputLayoutElemets[] = {
-		{"Pos", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
