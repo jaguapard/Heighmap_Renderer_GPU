@@ -98,7 +98,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 		{
 			float angAddX = event.motion.xrel * 1e-3;
 			float angAddY = event.motion.yrel * 1e-3;
-			this->camAng += XMVectorSet(angAddX, 0, angAddY, 0);
+			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0);
 		}
 	}
 	
@@ -124,11 +124,11 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
-	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
-	XMMATRIX perspective = XMMatrixPerspectiveFovLH(3.14159 / 2, 16.f / 9.f, 0.001, 10000); //TODO: near Z seems dangerously small
-	
-	XMMATRIX transformation = rotation * translation * perspective;
-	transformation = XMMatrixTranspose(transformation);
+	XMMATRIX view = XMMatrixTranspose(rotation) * XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f);
+	XMMATRIX transform = view * projection;
+	transform = XMMatrixTranspose(transform);
+
 	//TODO: don't recreate this buffer every frame, update instead, it already has write access
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 	D3D11_BUFFER_DESC cbd;
@@ -139,7 +139,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	cbd.ByteWidth = sizeof(XMMATRIX);
 	cbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &transformation;
+	csd.pSysMem = &transform;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
