@@ -6,12 +6,19 @@
 #include "utils.h"
 #include "C_Input.h"
 #include <iostream>
-
+using namespace DirectX;
 struct Vertex {
 	float x, y;
 };
 
-using namespace DirectX;
+//Constant buffers require 16-alignment
+struct alignas(16) ConstantBuffer
+{
+	XMMATRIX transformation;
+	float time;
+};
+
+
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
 	this->camAng = XMVectorZero();
@@ -105,6 +112,21 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	UINT vbOffsets[] = { 0 };
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//TODO: don't recreate this buffer every frame, update instead, it already has write access
+	ConstantBuffer cb;
+	memset(&cb, 0, sizeof(cb));
+	D3D11_BUFFER_DESC cbd;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA csd;
+	csd.pSysMem = &cb;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 }
 
 void Game::beginNewFrame()
@@ -202,32 +224,17 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
-	struct alignas(16) ConstantBuffer
-	{
-		XMMATRIX transformation;
-		float time;
-	};
-	ConstantBuffer cb;
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 100000.f);
 	XMMATRIX transform = view * projection;
-	cb.transformation = XMMatrixTranspose(transform);
-	cb.time = this->gameTime;
-	
-	//TODO: don't recreate this buffer every frame, update instead, it already has write access
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-	D3D11_BUFFER_DESC cbd;
-	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbd.Usage = D3D11_USAGE_DYNAMIC;
-	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbd.MiscFlags = 0;
-	cbd.ByteWidth = sizeof(cb);
-	cbd.StructureByteStride = 0;
-	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &cb;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
-	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+
+	D3D11_MAPPED_SUBRESOURCE mappedCb = {};
+	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
+	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
+	cb->transformation = XMMatrixTranspose(transform);
+	cb->time = this->gameTime;
+	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
 	float r = 0;
