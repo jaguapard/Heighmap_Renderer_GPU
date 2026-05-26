@@ -7,6 +7,10 @@
 #include "C_Input.h"
 #include <iostream>
 
+struct Vertex {
+	float x, y;
+};
+
 using namespace DirectX;
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
@@ -35,6 +39,43 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	rdsc.CullMode = D3D11_CULL_NONE;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
+
+	Vertex verts[] = {
+		{0.f,0.5f},
+		{0.5f,-0.5f},
+		{-0.5f,-0.5f},
+	};
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.ByteWidth = sizeof(verts);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
+
+	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
+	vertexBufferSubresourceData.pSysMem = verts;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
+
+	UINT vbStrides[] = { sizeof(Vertex) };
+	UINT vbOffsets[] = { 0 };
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
+	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	/*
+	float fieldSize = 2000;
+	int subdivisions = 100;
+	float fieldStep = 10;
+	std::vector<Vertex> verts;
+	for (float y = -fieldSize / 2; y < fieldSize / 2; y += fieldStep)
+	{
+		for (float x = -fieldSize / 2; x < fieldSize / 2; x += fieldStep)
+		{
+			Vertex v;
+			v.x = x;
+			v.y = y;
+			verts.emplace_back(v);
+		}
+	}*/
 }
 
 void Game::beginNewFrame()
@@ -160,34 +201,6 @@ void Game::update(const std::vector<SDL_Event>& events)
 	r = g = b = 0;
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
-
-
-	struct Vertex {
-		float x, y;
-	};
-	Vertex verts[] = {
-		{0.f,0.5f},
-		{0.5f,-0.5f},
-		{-0.5f,-0.5f},
-	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.ByteWidth = sizeof(verts);
-	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
-
-	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
-	vertexBufferSubresourceData.pSysMem = verts;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
-
-	UINT vbStrides[] = { sizeof(Vertex) };
-	UINT vbOffsets[] = { 0 };
-	this->gfx.deviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
-	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	this->gfx.deviceContext->Draw(3, 0);
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later

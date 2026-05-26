@@ -24,4 +24,5 @@ private:
 	DirectX::XMVECTOR camPos, camAng;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 };
