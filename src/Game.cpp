@@ -16,6 +16,7 @@ struct alignas(16) ConstantBuffer
 {
 	XMMATRIX transformation;
 	float time;
+	XMFLOAT3 camPos;
 };
 
 
@@ -136,6 +137,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	csd.pSysMem = &cb;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 }
 
 void Game::beginNewFrame()
@@ -243,6 +245,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
 	cb->transformation = XMMatrixTranspose(transform);
 	cb->time = this->gameTime;
+	XMStoreFloat3(&cb->camPos, this->camPos);
 	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());

@@ -6,8 +6,8 @@ cbuffer CBuf
 }
 struct VSOut
 {
-    float4 transformedPos : SV_Position;
     float3 originalWorldPos : WorldPos;
+    float4 transformedPos : SV_Position;
 };
 VSOut main(float2 pos : Pos)
 {
