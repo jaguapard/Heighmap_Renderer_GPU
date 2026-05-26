@@ -12,16 +12,22 @@ static void __raise_error_internal(const char* filePath, int line, std::string e
     ss << "Error in file: " << filePath << "\n" << "Line " << line << "\n" << errorMsg;
     if (code)
     {
+        HRESULT hr = *code;
         char buf[8192] = { 0 };
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM |
             FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, DWORD(*code),
+            NULL, DWORD(hr),
             MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
             buf,
             sizeof(buf),
             NULL);
-        ss << "\nHRESULT: 0x" << std::hex << *code << "\n";
+        ss << "\nHRESULT: 0x" << std::hex << hr << "\n";
         ss << buf << "\n";
+        /*
+        if (hr == DXGI_ERROR_DEVICE_REMOVED)
+        {
+            ss << "DXGI device removed. Reason: " <<  
+        }*/
     }
     throw std::runtime_error(ss.str());
 }

@@ -1,6 +1,14 @@
 #include "Graphics.h"
 #include "errors.h"
+#include "utils.h"
+#include <filesystem>
 
+const std::wstring Graphics::SHADERS_FOLDER = []() {
+    std::wstring modulePath = utils::getCurrModuleFullPath();
+    auto p = std::filesystem::path(modulePath);
+    auto r = p.remove_filename();
+    return r.wstring();
+    }();
 Graphics::Graphics(uint32_t w, uint32_t h)
 {
     this->w = w;

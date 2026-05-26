@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
+#include <string>
 class Graphics
 {
 public:
@@ -18,4 +19,5 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mainRenderTargetView;
 	//Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 	//Microsoft::WRL::ComPtr<ID3D11RenderTargetView> backBufferRenderTargetView;
+	static const std::wstring SHADERS_FOLDER;
 };
