@@ -186,7 +186,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f); //TODO: remove hardcoded aspect ratio
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 10000.f);
 	XMMATRIX transform = view * projection;
 	transform = XMMatrixTranspose(transform);
 
