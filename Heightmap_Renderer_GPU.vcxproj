@@ -24,6 +24,7 @@
     <ProjectGuid>{f4704143-6bb8-4314-aed5-068548e4200b}</ProjectGuid>
     <RootNamespace>HeighmapRendererGPU</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Heightmap_Renderer_GPU</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
