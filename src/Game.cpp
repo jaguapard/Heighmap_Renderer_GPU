@@ -108,7 +108,6 @@ void Game::update(const std::vector<SDL_Event>& events)
 	}
 
 	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng);
-
 	XMVECTOR camAdd = XMVectorZero();
 	XMVECTOR right = XMVectorSet(rotation.m[0][0], rotation.m[0][1], rotation.m[0][2], 0.f);
 	XMVECTOR forward = XMVectorSet(rotation.m[2][0], rotation.m[2][1], rotation.m[2][2], 0.f);
@@ -124,7 +123,8 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
-	XMMATRIX view = XMMatrixTranspose(rotation) * XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 16.f / 9.f, 0.1f, 10000.f);
 	XMMATRIX transform = view * projection;
 	transform = XMMatrixTranspose(transform);
