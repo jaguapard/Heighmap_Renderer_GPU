@@ -20,7 +20,7 @@ private:
 	double globalTime = 0;
 
 	float flySpeed = 5;
-
+	UINT vertexCount;
 	DirectX::XMVECTOR camPos, camAng;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;

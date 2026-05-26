@@ -40,28 +40,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
 
-	Vertex verts[] = {
-		{0.f,0.5f},
-		{0.5f,-0.5f},
-		{-0.5f,-0.5f},
-	};
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.ByteWidth = sizeof(verts);
-	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
-
-	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
-	vertexBufferSubresourceData.pSysMem = verts;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
-
-	UINT vbStrides[] = { sizeof(Vertex) };
-	UINT vbOffsets[] = { 0 };
-	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
-	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	/*
+	
 	float fieldSize = 2000;
 	int subdivisions = 100;
 	float fieldStep = 10;
@@ -75,7 +54,24 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 			v.y = y;
 			verts.emplace_back(v);
 		}
-	}*/
+	}
+	this->vertexCount = verts.size();
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
+
+	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
+	vertexBufferSubresourceData.pSysMem = verts.data();
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
+
+	UINT vbStrides[] = { sizeof(Vertex) };
+	UINT vbOffsets[] = { 0 };
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
+	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Game::beginNewFrame()
@@ -202,6 +198,6 @@ void Game::update(const std::vector<SDL_Event>& events)
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
 
-	this->gfx.deviceContext->Draw(3, 0);
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
 }
