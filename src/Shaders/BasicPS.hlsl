@@ -16,11 +16,13 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     
     float derivativeStep = 1;
     float pos2d = float2(worldPos.x, worldPos.z);
-    float f = surface_func(pos2d, time); //do NOT change this to worldPos.y, that's broken
-    float f_stepX = surface_func(pos2d + float2(derivativeStep, 0), time);
-    float f_stepY = surface_func(pos2d + float2(0, derivativeStep), time);
-    float dx = (f_stepX - f) / derivativeStep;
-    float dy = (f_stepY - f) / derivativeStep;
+    //float f = surface_func(pos2d, time); //do NOT change this to worldPos.y, that's broken
+    float fx0 = surface_func(pos2d - float2(derivativeStep, 0), time);
+    float fx1 = surface_func(pos2d + float2(derivativeStep, 0), time);
+    float fy0 = surface_func(pos2d - float2(0, derivativeStep), time);
+    float fy1 = surface_func(pos2d + float2(0, derivativeStep), time);
+    float dx = (fx1 - fx0) / (2 * derivativeStep);
+    float dy = (fy1 - fy0) / (2 * derivativeStep);
     
     float3 normal = normalize(float3(dx, 1, dy));
     float normalShadingMult = max(0.05, -dot(lightDir, normal));
