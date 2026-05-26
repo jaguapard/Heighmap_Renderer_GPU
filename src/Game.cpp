@@ -5,10 +5,12 @@
 #include "errors.h"
 #include "utils.h"
 #include "C_Input.h"
+#include <iostream>
 
+using namespace DirectX;
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
-	this->camPos = this->camAng = DirectX::XMFLOAT3(0, 0, 0);
+	this->camPos = this->camAng = XMVectorZero();
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
@@ -30,15 +32,23 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 
 void Game::beginNewFrame()
 {
-	this->camAdd = { 0,0,0 };
+	
 }
 
 void Game::handleEvent(SDL_Event& event)
 {
-	DirectX::XMFLOAT3 camAdd = { 0,0,0 };
 
 }
 
+static std::ostream& operator<<(std::ostream& os, const XMVECTOR& v)
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		os << v.vector4_f32[i];
+		if (i != 3) os << ", ";
+	}
+	return os;
+}
 /*
 static Microsoft::WRL::ComPtr<ID3DBlob> CompileShaderFromFile(std::wstring path)
 {
@@ -78,6 +88,25 @@ void Game::update()
 	this->globalTime = (currTicks - startTicks) / 1e9;
 	this->gameTime += clampedDt;
 	this->prevTicks = currTicks;
+
+	C_Input& inp = C_Input::getInstance();
+	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng);
+
+	XMVECTOR camAdd = XMVectorZero();
+	XMVECTOR right = XMVectorSet(rotation.m[0][0], rotation.m[0][1], rotation.m[0][2], 0.f);
+	XMVECTOR forward = XMVectorSet(rotation.m[2][0], rotation.m[2][1], rotation.m[2][2], 0.f);
+	if (inp.isButtonHeld(SDL_SCANCODE_W)) camAdd += forward;
+	if (inp.isButtonHeld(SDL_SCANCODE_S)) camAdd -= forward;
+	if (inp.isButtonHeld(SDL_SCANCODE_A)) camAdd -= right;
+	if (inp.isButtonHeld(SDL_SCANCODE_D)) camAdd += right;
+	if (inp.isButtonHeld(SDL_SCANCODE_Z)) camAdd -= XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	if (inp.isButtonHeld(SDL_SCANCODE_X)) camAdd += XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	if (XMVector3NotEqual(camAdd, XMVectorZero()))
+	{
+		this->camPos += XMVector3Normalize(camAdd) * this->flySpeed * clampedDt;
+		std::cout << this->camPos << "\n";
+	}
+	
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
 	float r = std::fmod(this->gameTime, 10.0) / 10.0;
