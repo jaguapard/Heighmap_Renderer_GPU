@@ -203,12 +203,19 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
+	struct alignas(16) ConstantBuffer
+	{
+		XMMATRIX transformation;
+		float time;
+	};
+	ConstantBuffer cb;
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 100000.f);
 	XMMATRIX transform = view * projection;
-	transform = XMMatrixTranspose(transform);
-
+	cb.transformation = XMMatrixTranspose(transform);
+	cb.time = this->gameTime;
+	
 	//TODO: don't recreate this buffer every frame, update instead, it already has write access
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 	D3D11_BUFFER_DESC cbd;
@@ -216,10 +223,10 @@ void Game::update(const std::vector<SDL_Event>& events)
 	cbd.Usage = D3D11_USAGE_DYNAMIC;
 	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cbd.MiscFlags = 0;
-	cbd.ByteWidth = sizeof(XMMATRIX);
+	cbd.ByteWidth = sizeof(cb);
 	cbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &transform;
+	csd.pSysMem = &cb;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
