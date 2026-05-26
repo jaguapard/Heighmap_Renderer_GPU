@@ -107,6 +107,23 @@ void Game::update()
 		std::cout << this->camPos << "\n";
 	}
 	
+	XMMATRIX transformation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	transformation = XMMatrixMultiply(transformation, rotation);
+	transformation = XMMatrixMultiply(transformation, XMMatrixPerspectiveFovLH(3.14159/2, 16.f / 9.f, 0.001, 10000)); //TODO: near Z seems dangerously small
+	transformation = XMMatrixTranspose(transformation);
+	//TODO: don't recreate this buffer every frame, update instead, it already has write access
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	D3D11_BUFFER_DESC cbd;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.ByteWidth = sizeof(XMMATRIX);
+	cbd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA csd;
+	csd.pSysMem = &transformation;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
 	float r = std::fmod(this->gameTime, 10.0) / 10.0;

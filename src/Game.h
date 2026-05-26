@@ -18,7 +18,7 @@ private:
 	double gameTime = 0;
 	double globalTime = 0;
 
-	float flySpeed = 500;
+	float flySpeed = 5;
 
 	DirectX::XMVECTOR camPos, camAng;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
