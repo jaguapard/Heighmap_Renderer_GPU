@@ -1,4 +1,5 @@
-float4 main() : SV_Target
+float4 main(uint id : SV_PrimitiveID) : SV_Target
 {
-	return float4(0.5f,0.6f,0.3f,1.f);
+    float fid = id;
+    return float4(fmod(fid / 21, 1), fmod(fid / 53, 1), fmod(fid / 93, 1), 1.f);
 }
