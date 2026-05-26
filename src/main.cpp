@@ -22,6 +22,11 @@ int main(int argc, char* argv[])
 		Game game(gfx);
 		while (true)
 		{
+			SDL_Event ev;
+			while (SDL_PollEvent(&ev))
+			{
+
+			}
 			game.update();
 		}
 	}
