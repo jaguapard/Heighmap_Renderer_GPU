@@ -3,11 +3,23 @@
 #include <sstream>
 #include <optional>
 
-static void __raise_error_internal(const char* filePath, int line, std::string errorMsg, std::optional<HRESULT> code = {})
+static void __raise_error_internal(const char* filePath, int line, std::string errorMsg, std::optional<HRESULT> code = std::nullopt)
 {
     std::stringstream ss;
     ss << "Error in file: " << filePath << "\n" << "Line " << line << "\n" << errorMsg;
-    if (code) ss << "\nError code: 0x" << std::hex << *code;
+    if (code)
+    {
+        char buf[8192] = { 0 };
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, DWORD(*code),
+            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+            buf,
+            sizeof(buf),
+            NULL);
+        ss << "\nHRESULT: 0x" << std::hex << *code << "\n";
+        ss << buf << "\n";
+    }
     throw std::runtime_error(ss.str());
 }
 #define RAISE_ERROR(msg) (__raise_error_internal(__FILE__, __LINE__, std::string("Error: ")+msg))
