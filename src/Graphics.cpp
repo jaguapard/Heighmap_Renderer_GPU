@@ -42,17 +42,13 @@ Graphics::Graphics(uint32_t w, uint32_t h)
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    if (FAILED(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE,
+    DX_THROW_ON_FAIL((D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE,
         nullptr, createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION,
-        &scd, &this->swapChain, &this->device, nullptr, &this->deviceContext)))
-        RAISE_ERROR("D3D11CreateDeviceAndSwapChain failed");
+        &scd, &this->swapChain, &this->device, nullptr, &this->deviceContext)), "D3D11CreateDeviceAndSwapChain");
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-    if (FAILED(this->swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer)))
-        RAISE_ERROR("GetBuffer failed");
-    if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &this->mainRenderTargetView))) {
-        RAISE_ERROR("CreateRenderTargetView failed");
-    }
+    DX_THROW_ON_FAIL(this->swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer), "Get back buffer");
+    DX_THROW_ON_FAIL(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &this->mainRenderTargetView), "Create render target view on backbuffer");
 
     D3D11_VIEWPORT vp;
     vp.TopLeftX = 0;
