@@ -25,4 +25,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencil;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 };

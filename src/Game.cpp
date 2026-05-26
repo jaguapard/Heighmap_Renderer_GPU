@@ -41,6 +41,24 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
 
+	D3D11_TEXTURE2D_DESC descDepth = {};
+	descDepth.Width = this->gfx.w;
+	descDepth.Height = this->gfx.h;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = DXGI_FORMAT_D32_FLOAT;
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateTexture2D(&descDepth, nullptr, &this->depthStencil), "Create depth stencil texture");
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+	descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Texture2D.MipSlice = 0;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilView(this->depthStencil.Get(), &descDSV, &this->depthStencilView), "Create depth stencil view");
+
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?
 	float fieldSize = 2000;
@@ -204,7 +222,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), nullptr); //TODO: add ZBuffer here!
+	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
 	float r = std::fmod(this->gameTime, 10.0) / 10.0;
 	float g = std::fmod(this->gameTime, 20.0) / 20.0;
 	float b = std::fmod(this->gameTime, 30.0) / 30.0;
@@ -212,6 +230,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	r = g = b = 0;
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
+	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1, 0);
 
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(1, 0), "Swapchain present", this->gfx.device.Get()); //TODO: disable VSYNC later
