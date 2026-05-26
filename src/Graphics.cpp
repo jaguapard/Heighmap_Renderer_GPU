@@ -28,8 +28,13 @@ Graphics::Graphics(uint32_t w, uint32_t h)
     scd.Windowed = TRUE;
     scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
+    UINT createDeviceFlags = 0;
+#ifndef NDEBUG
+    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
     if (FAILED(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE,
-        nullptr, 0, nullptr, 0, D3D11_SDK_VERSION,
+        nullptr, createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION,
         &scd, &this->swapChain, &this->device, nullptr, &this->deviceContext)))
         RAISE_ERROR("D3D11CreateDeviceAndSwapChain failed");
 
