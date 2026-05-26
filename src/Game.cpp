@@ -66,6 +66,15 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	descDSV.Texture2D.MipSlice = 0;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilView(this->depthStencil.Get(), &descDSV, &this->depthStencilView), "Create depth stencil view");
 
+	D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+	dsDesc.DepthEnable = true;
+	dsDesc.StencilEnable = false;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	dsDesc.DepthFunc = D3D11_COMPARISON_GREATER; //using reverse depth, greater comparison is needed
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> dsState;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
+	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
+
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?
 	float fieldSize = 20000;
@@ -226,7 +235,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 0.1f, 100000.f);
+	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 100000.f, 0.1f);
 	XMMATRIX transform = view * projection;
 
 	D3D11_MAPPED_SUBRESOURCE mappedCb = {};
@@ -242,7 +251,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	float b = 0;
 	float clear[4] = { r,g,b,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
-	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1, 0);
+	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get());
