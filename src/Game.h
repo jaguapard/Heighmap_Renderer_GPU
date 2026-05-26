@@ -22,7 +22,7 @@ private:
 	bool vsyncEnabled = true;
 	float flySpeed = 2500;
 	UINT vertexCount;
-	DirectX::XMVECTOR camPos, camAng;
+	DirectX::XMVECTOR camPos, camAng, lightDir;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer, constantBuffer;

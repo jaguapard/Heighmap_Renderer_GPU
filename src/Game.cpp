@@ -16,6 +16,7 @@ struct alignas(16) ConstantBuffer
 {
 	XMMATRIX transformation;
 	float time;
+	XMFLOAT3 camPos, lightDir;
 };
 
 
@@ -23,6 +24,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 {
 	this->camAng = XMVectorZero();
 	this->camPos = XMVectorSet(0, 100, 0, 0);
+	this->lightDir = XMVectorSet(0, -1, 0, 0);
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
@@ -122,7 +124,6 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	//TODO: don't recreate this buffer every frame, update instead, it already has write access
 	ConstantBuffer cb;
 	memset(&cb, 0, sizeof(cb));
 	D3D11_BUFFER_DESC cbd;
@@ -136,6 +137,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	csd.pSysMem = &cb;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 }
 
 void Game::beginNewFrame()
@@ -243,6 +245,8 @@ void Game::update(const std::vector<SDL_Event>& events)
 	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
 	cb->transformation = XMMatrixTranspose(transform);
 	cb->time = this->gameTime;
+	XMStoreFloat3(&cb->camPos, this->camPos);
+	XMStoreFloat3(&cb->lightDir, XMVector3Normalize(this->lightDir));
 	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
