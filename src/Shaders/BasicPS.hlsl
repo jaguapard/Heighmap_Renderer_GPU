@@ -7,6 +7,9 @@ cbuffer CBuf
 }
 
 static const float PI = 3.14159265f;
+static const float LINE_THICKNESS = 2;
+static const float LINE_INTERVAL = 100;
+static const float LINE_MARKER_MULT = 0.8;
 float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
 {
     float fid = id;
@@ -35,6 +38,9 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     float g = yp;
     float b = min(1, abs(fx0 / 1000)); //brightness * abs(polarPhi / PI);
     float4 base_color = float4(r, g, b, 1);
+
+    if (abs(fmod(worldPos.x, LINE_INTERVAL)) < LINE_THICKNESS || abs(fmod(worldPos.z, LINE_INTERVAL)) < LINE_THICKNESS) 
+        base_color *= float4(LINE_MARKER_MULT.xxx, 1);
     
     float3 normal = normalize(float3(dx, 1, dy));
     float normalShadingMult = max(0.05, -dot(lightDir.xyz, normal));
