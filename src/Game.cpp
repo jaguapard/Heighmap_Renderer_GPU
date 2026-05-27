@@ -11,12 +11,13 @@ struct Vertex {
 	float x, y;
 };
 
-//Constant buffers require 16-alignment
+//Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
+//Yes, the memory is wasted, but whatever. If you really want to, you can pack many smaller values into XMVECTOR.
 struct alignas(16) ConstantBuffer
 {
 	XMMATRIX transformation;
-	float time;
-	XMFLOAT3 camPos, lightDir;
+	XMVECTOR time, fieldSize;
+	XMVECTOR camPos, lightDir;
 };
 
 
@@ -79,7 +80,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?
-	float fieldSize = 20000;
+	this->fieldSize = 20000;
 	int subdivisions = 400;
 	std::vector<Vertex> verts;
 	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
@@ -198,6 +199,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->globalTime = (currTicks - startTicks) / 1e9;
 	this->gameTime += clampedDt;
 	this->prevTicks = currTicks;
+	this->lightDir = XMVectorSet(sin(this->gameTime/20), cos(this->gameTime/20), 1, 0);
 
 	C_Input& inp = C_Input::getInstance();
 	if (inp.wasCharPressedOnThisFrame('V')) this->vsyncEnabled ^= 1;
@@ -210,7 +212,15 @@ void Game::update(const std::vector<SDL_Event>& events)
 			float angAddX = event.motion.xrel * 1e-3;
 			float angAddY = event.motion.yrel * 1e-3;
 			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0); //TODO: wrap angles around multiples of PI
-			//this->camAng
+			
+			//clamp angles. Vertical to range +-PI/2 with small dead zone. Horizontal to 0..2*PI 
+			float ang1 = XMVectorGetX(this->camAng);
+			float ang2 = XMVectorGetY(this->camAng);
+			float lim = XM_PIDIV2 - 0.01;
+			ang1 = std::clamp<float>(ang1, -lim, lim);
+			ang2 = std::fmodf(ang2, XM_2PI);
+			if (ang2 < 0) ang2 += XM_2PI;
+			this->camAng = XMVectorSet(ang1, ang2, 0, 0);
 		}
 	}
 	
@@ -244,9 +254,10 @@ void Game::update(const std::vector<SDL_Event>& events)
 	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
 	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
 	cb->transformation = XMMatrixTranspose(transform);
-	cb->time = this->gameTime;
-	XMStoreFloat3(&cb->camPos, this->camPos);
-	XMStoreFloat3(&cb->lightDir, XMVector3Normalize(this->lightDir));
+	cb->time = XMVectorSet(this->gameTime,0,0,0);
+	cb->fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
+	cb->camPos = this->camPos;
+	cb->lightDir = XMVector3Normalize(this->lightDir);
 	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());

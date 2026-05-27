@@ -55,4 +55,12 @@
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Shaders\surface_func.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="src\Shaders\cbuff.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
 </Project>
