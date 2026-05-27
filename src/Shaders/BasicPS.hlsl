@@ -20,10 +20,7 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     float yp = (worldPos.z + fieldSize / 2) / fieldSize;
     float polarR = length(pos2d);
     float polarPhi = atan2(pos2d.y, pos2d.x);
-    float r = xp;
-    float g = yp;
-    float b = polarR / fieldSize;
-    float4 base_color = float4(r, g, b, 1);
+    float brightness = polarR / fieldSize;
     
     float derivativeStep = 1;
     //float f = surface_func(pos2d, time); //do NOT change this to worldPos.y, that's broken
@@ -34,8 +31,13 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     float dx = (fx1 - fx0) / (2 * derivativeStep);
     float dy = (fy1 - fy0) / (2 * derivativeStep);
     
+    float r = xp;
+    float g = yp;
+    float b = min(1, abs(fx0 / 1000)); //brightness * abs(polarPhi / PI);
+    float4 base_color = float4(r, g, b, 1);
+    
     float3 normal = normalize(float3(dx, 1, dy));
     float normalShadingMult = max(0.05, -dot(lightDir.xyz, normal));
     
-    return base_color * distShadingMult * normalShadingMult;
+    return base_color * distShadingMult * normalShadingMult * 2;
 }
