@@ -199,6 +199,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->globalTime = (currTicks - startTicks) / 1e9;
 	this->gameTime += clampedDt;
 	this->prevTicks = currTicks;
+	this->lightDir = XMVectorSet(sin(this->gameTime/20), cos(this->gameTime/20), 1, 0);
 
 	C_Input& inp = C_Input::getInstance();
 	if (inp.wasCharPressedOnThisFrame('V')) this->vsyncEnabled ^= 1;
