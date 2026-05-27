@@ -194,6 +194,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\Shaders\cbuff.hlsli" />
     <None Include="src\Shaders\surface_func.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

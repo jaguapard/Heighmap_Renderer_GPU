@@ -1,10 +1,5 @@
 #include "surface_func.hlsli"
-cbuffer CBuf
-{
-    matrix transform;
-    float4 time, fieldSize;
-    float4 camPos, lightDir;
-}
+#include "cbuff.hlsli"
 
 static const float PI = 3.14159265f;
 static const float LINE_THICKNESS = 2;

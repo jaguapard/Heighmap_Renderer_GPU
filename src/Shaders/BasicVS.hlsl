@@ -1,10 +1,6 @@
 #include "surface_func.hlsli"
-cbuffer CBuf
-{
-	matrix transform;
-    float4 time, fieldSize;
-    float4 camPos, lightDir;
-}
+#include "cbuff.hlsli"
+
 struct VSOut
 {
     float3 originalWorldPos : WorldPos;
