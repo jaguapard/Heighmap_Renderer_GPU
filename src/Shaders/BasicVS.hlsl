@@ -2,7 +2,8 @@
 cbuffer CBuf
 {
 	matrix transform;
-    float time;
+    float4 time, fieldSize;
+    float4 camPos, lightDir;
 }
 struct VSOut
 {
@@ -11,7 +12,7 @@ struct VSOut
 };
 VSOut main(float2 pos : Pos)
 {
-    float func = surface_func(pos, time);
+    float func = surface_func(pos, time.x);
     VSOut ret;
     ret.originalWorldPos = float3(pos.x, func, pos.y);
     ret.transformedPos = mul(float4(ret.originalWorldPos, 1.f), transform);
