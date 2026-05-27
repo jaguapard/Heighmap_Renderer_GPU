@@ -211,7 +211,15 @@ void Game::update(const std::vector<SDL_Event>& events)
 			float angAddX = event.motion.xrel * 1e-3;
 			float angAddY = event.motion.yrel * 1e-3;
 			this->camAng += XMVectorSet(angAddY, angAddX, 0, 0); //TODO: wrap angles around multiples of PI
-			//this->camAng
+			
+			//clamp angles. Vertical to range +-PI/2 with small dead zone. Horizontal to 0..2*PI 
+			float ang1 = XMVectorGetX(this->camAng);
+			float ang2 = XMVectorGetY(this->camAng);
+			float lim = XM_PIDIV2 - 0.01;
+			ang1 = std::clamp<float>(ang1, -lim, lim);
+			ang2 = std::fmodf(ang2, XM_2PI);
+			if (ang2 < 0) ang2 += XM_2PI;
+			this->camAng = XMVectorSet(ang1, ang2, 0, 0);
 		}
 	}
 	
