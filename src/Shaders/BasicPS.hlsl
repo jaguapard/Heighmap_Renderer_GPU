@@ -13,7 +13,7 @@ float4 main(float3 worldPos : WorldPos, uint id : SV_PrimitiveID) : SV_Target
     //float4 base_color = float4(fmod(fid / 21, 1), fmod(fid / 53, 1), fmod(fid / 93, 1), 1.f);
     float dist = length((worldPos - camPos.xyz).xyz);
     float scaledDist = dist / 5000;
-    float distShadingMult = saturate(exp(-scaledDist));
+    float distShadingMult = 1;//saturate(exp(-scaledDist));
     
     float2 pos2d = float2(worldPos.x, worldPos.z);
     float xp = (worldPos.x + fieldSize / 2) / fieldSize;
