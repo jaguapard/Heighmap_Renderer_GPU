@@ -11,11 +11,6 @@ struct Vertex2D {
 	float x, y;
 };
 
-struct Vertex3D {
-	float x, y, z, u, v;
-};
-
-
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
 	this->camAng = XMVectorZero();
@@ -86,78 +81,8 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	this->gfx.device->CreateDepthStencilState(&dsDesc, &this->skyboxDepthStencilState);
 
-
-	// Cube centered at origin, side length 1.
-	// Fully expanded vertices, data order: x, y, z, u, v
-	// CCW winding looking at each face from outside.
-	std::array<float, 5> cubeVerts[] = {
-
-		// Front (+Z)
-		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
-		{-0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
-		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
-
-		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
-		{ 0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
-		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
-
-		// Back (-Z)
-		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-		{ 0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
-		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-
-		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-		{-0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
-		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-
-		// Left (-X)
-		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
-		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
-
-		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
-		{-0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
-		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-
-		// Right (+X)
-		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
-		{ 0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
-		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-
-		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
-		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
-
-		// Top (+Y)
-		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-		{-0.5f,  0.5f,  0.5f, 0.0f, 1.0f},
-		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
-
-		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
-		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
-		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
-
-		// Bottom (-Y)
-		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
-		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
-		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-
-		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
-		{ 0.5f, -0.5f,  0.5f, 1.0f, 0.0f},
-		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
-	};
-
-	std::vector<Vertex3D> skyCubeVerts;
 	float sz = 10000;
-	for (int i = 0; i < std::size(cubeVerts); ++i)
-	{
-		Vertex3D& v = skyCubeVerts.emplace_back();
-		v.x = cubeVerts[i][0] * sz;
-		v.y = cubeVerts[i][1] * sz;
-		v.z = cubeVerts[i][2] * sz;
-		v.u = cubeVerts[i][3];
-		v.v = cubeVerts[i][4];
-	}
+	std::vector<Vertex3D> skyCubeVerts = this->gfx.generateRectangularCuboidNoDedup(XMVectorZero(), XMVectorSet(sz, sz, sz, 0));
 	this->skyCubeVertexCount = skyCubeVerts.size();
 
 	//Generate and set vertex buffers

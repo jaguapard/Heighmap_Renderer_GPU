@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "errors.h"
-
+#include "DirectXMath.h"
 class Graphics;
 struct ShaderCreationDesc;
 
@@ -33,6 +33,10 @@ struct ShaderCreationDesc
 	ID3D11ClassLinkage* classLinkange = nullptr; //passed directly to D3D11
 };
 
+struct Vertex3D {
+	float x, y, z, u, v;
+};
+
 class Graphics
 {
 public:
@@ -47,6 +51,12 @@ public:
 	//Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 	//Microsoft::WRL::ComPtr<ID3D11RenderTargetView> backBufferRenderTargetView;
 	static const std::string SHADERS_FOLDER;
+
+	//Generates a rectangle cuboid centered at target point with side lengths size, and returns it in a vector
+	//All vertices are used exactly in one triangle, resulting in 36 total vertices.
+	//W component of input vectors is ignored. Setting all sizes to the same value will generate a proper cube
+	//Returned shape's vertex winding is undefined.
+	static std::vector<Vertex3D> generateRectangularCuboidNoDedup(DirectX::XMVECTOR center = DirectX::XMVectorZero(), DirectX::XMVECTOR size = DirectX::XMVectorSet(1, 1, 1, 0));
 };
 
 static std::wstring ascii_string_to_wstring(const std::string s)
