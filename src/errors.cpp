@@ -19,8 +19,8 @@ void DX_THROW_ON_FAIL(HRESULT hr, std::string message, ID3D11Device* device, std
     std::ostringstream ss;
     ss << "DX_THROW_ON_FAIL has detected an error.\n";
     ss << "File " << location.file_name() << ", line " << location.line() << ", char " << location.column() << "\n"
-        << "Function " << location.function_name() << "\n"
-        << "Message: " << message << "\n";
+        << "Function " << location.function_name() << "\n";
+    if (!message.empty()) ss << "Message: " << message << "\n";
     
     ss << "HRESULT: 0x" << std::hex << hr << "\n";
     ss << hResultToEnglish(hr);

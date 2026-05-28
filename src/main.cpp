@@ -8,6 +8,7 @@
 #include "Graphics.h"
 #include "Game.h"
 #include "C_Input.h"
+#include "utils.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -19,6 +20,10 @@ int main(int argc, char* argv[])
 {
 	try
 	{
+		std::wstring modulePath = utils::getCurrModuleFullPath();
+		for (auto& c : modulePath) if (c < 0 || c > 127) 
+			RAISE_ERROR("Application path contains non-ASCII characters. Such paths are not supported. Leave only English letters in the path and launch the application again.");
+
 		std::vector<SDL_Event> sdlEvents;
 		Graphics gfx(2560, 1440);
 		C_Input& input = C_Input::getInstance();
@@ -41,6 +46,8 @@ int main(int argc, char* argv[])
 			}
 			game.update(sdlEvents);
 			sdlEvents.clear();
+			game.draw();
+			game.present();
 		}
 	}
 	catch (const std::exception& e)

@@ -11,6 +11,6 @@ VSOut main(float2 pos : Pos)
     float func = surface_func(pos, time.x);
     VSOut ret;
     ret.originalWorldPos = float3(pos.x, func, pos.y);
-    ret.transformedPos = mul(float4(ret.originalWorldPos, 1.f), transform);
+    ret.transformedPos = mul(float4(ret.originalWorldPos, 1.f), viewProjection);
     return ret;
 }

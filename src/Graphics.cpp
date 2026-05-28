@@ -2,13 +2,16 @@
 #include "errors.h"
 #include "utils.h"
 #include <filesystem>
+#include <array>
 
-const std::wstring Graphics::SHADERS_FOLDER = []() {
+using namespace DirectX;
+
+const std::string Graphics::SHADERS_FOLDER = []() {
     std::wstring modulePath = utils::getCurrModuleFullPath();
     auto p = std::filesystem::path(modulePath);
     auto r = p.remove_filename();
     r.append(L"Shaders\\");
-    return r.wstring();
+    return r.string();
     }();
 Graphics::Graphics(uint32_t w, uint32_t h)
 {
@@ -58,4 +61,84 @@ Graphics::Graphics(uint32_t w, uint32_t h)
     vp.MinDepth = 0;
     vp.MaxDepth = 1;
     this->deviceContext->RSSetViewports(1, &vp);
+}
+
+std::vector<Vertex3D> Graphics::generateRectangularCuboidNoDedup(XMVECTOR center, XMVECTOR size)
+{
+	// Cube centered at origin, side length 1.
+	// Fully expanded vertices, data order: x, y, z, u, v
+	// CCW winding looking at each face from outside.
+	static const std::array<float, 5> cubeVerts[] = {
+		// Front (+Z)
+		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+
+		// Back (-Z)
+		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{ 0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+
+		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{-0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Left (-X)
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+
+		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+		{-0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Right (+X)
+		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+		{ 0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+
+		// Top (+Y)
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{-0.5f,  0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
+
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Bottom (-Y)
+		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
+	};
+
+	std::vector<Vertex3D> ret;
+	float sx = XMVectorGetX(size);
+	float sy = XMVectorGetY(size);
+	float sz = XMVectorGetZ(size);
+	float cx = XMVectorGetX(center);
+	float cy = XMVectorGetY(center);
+	float cz = XMVectorGetZ(center);
+	for (auto& cubeVertex : cubeVerts)
+	{
+		Vertex3D& v = ret.emplace_back();
+		v.x = cubeVertex[0] * sx + cx;
+		v.y = cubeVertex[1] * sy + cy;
+		v.z = cubeVertex[2] * sz + cz;
+		v.u = cubeVertex[3];
+		v.v = cubeVertex[4];
+	}
+	return ret;
 }

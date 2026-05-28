@@ -7,50 +7,49 @@
 #include "C_Input.h"
 #include <iostream>
 using namespace DirectX;
-struct Vertex {
+struct Vertex2D {
 	float x, y;
 };
-
-//Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
-//Yes, the memory is wasted, but whatever. If you really want to, you can pack many smaller values into XMVECTOR.
-struct alignas(16) ConstantBuffer
-{
-	XMMATRIX transformation;
-	XMVECTOR time, fieldSize;
-	XMVECTOR camPos, lightDir;
-};
-
 
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
 	this->camAng = XMVectorZero();
 	this->camPos = XMVectorSet(0, 100, 0, 0);
 	this->lightDir = XMVectorSet(0, -1, 0, 0);
-	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
-	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
-	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
-	DX_THROW_ON_FAIL(this->gfx.device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &this->basicVS), "Create basic VS");
-	this->gfx.deviceContext->VSSetShader(this->basicVS.Get(), nullptr, 0);
 
-	Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-	DX_THROW_ON_FAIL(D3DReadFileToBlob((Graphics::SHADERS_FOLDER + L"BasicPS.cso").c_str(), &psBlob), "Read basic PS blob");
-	DX_THROW_ON_FAIL(this->gfx.device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &this->basicPS), "Create basic PS");
-	this->gfx.deviceContext->PSSetShader(this->basicPS.Get(), nullptr, 0);
+	//Create main vertex shader
+	ShaderCreationDesc vsDesc;
+	vsDesc.path = "BasicVS.cso";
+	vsDesc.inputLayout = { {"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0} };
+	this->mainVS = Shader<ID3D11VertexShader>(this->gfx, vsDesc);
 
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> vsInputLayout;
-	const D3D11_INPUT_ELEMENT_DESC vsInputLayoutElemets[] = {
-		{"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
+	ShaderCreationDesc skyboxVsDesc;
+	skyboxVsDesc.path = "SkyboxVS.cso";
+	skyboxVsDesc.inputLayout = {
+		{"Pos", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,D3D11_APPEND_ALIGNED_ELEMENT,D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
-	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
-	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
+	this->skyboxVS = Shader<ID3D11VertexShader>(this->gfx, skyboxVsDesc);
 
+	ShaderCreationDesc skyboxPsDesc;
+	skyboxPsDesc.path = "SkyboxPS.cso";
+	this->skyboxPS = Shader<ID3D11PixelShader>(this->gfx, skyboxPsDesc);
+
+
+	ShaderCreationDesc psDesc;
+	psDesc.path = "BasicPS.cso";
+	this->mainPS = Shader<ID3D11PixelShader>(this->gfx, psDesc);
+	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
+
+	//Disable backface culling
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
 	D3D11_RASTERIZER_DESC rdsc = {};
 	rdsc.FillMode = D3D11_FILL_SOLID;
 	rdsc.CullMode = D3D11_CULL_NONE;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
-
+	
+	//Create and set depth buffer
 	D3D11_TEXTURE2D_DESC descDepth = {};
 	descDepth.Width = this->gfx.w;
 	descDepth.Height = this->gfx.h;
@@ -74,15 +73,23 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	dsDesc.StencilEnable = false;
 	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	dsDesc.DepthFunc = D3D11_COMPARISON_GREATER; //using reverse depth, greater comparison is needed
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> dsState;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
-	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
+	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &this->mainDepthStencilState), "Create depth stencil state");
 
+	//to avoid headaches with the sky, just render it first without depth tests and writes
+	dsDesc.DepthEnable = false;
+	dsDesc.StencilEnable = false;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	this->gfx.device->CreateDepthStencilState(&dsDesc, &this->skyboxDepthStencilState);
+
+	std::vector<Vertex3D> skyCubeVerts = this->gfx.generateRectangularCuboidNoDedup();
+	this->skyCubeVertexCount = skyCubeVerts.size();
+
+	//Generate and set vertex buffers
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
-	//TODO: can probably generate this on GPU?
+	//TODO: can probably generate this on GPU?  check out SV_VertexID
 	this->fieldSize = 20000;
 	int subdivisions = 400;
-	std::vector<Vertex> verts;
+	std::vector<Vertex2D> verts;
 	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
 	{
 		float sy = fieldSize / subdivisions * stepIndexY - fieldSize / 2;
@@ -91,7 +98,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		{
 			float sx = fieldSize / subdivisions * stepIndexX - fieldSize / 2;
 			float snx = fieldSize / subdivisions * (stepIndexX+1) - fieldSize / 2;
-			Vertex v;
+			Vertex2D v;
 			v.x = sx;
 			v.y = sy;
 			verts.emplace_back(v);
@@ -107,26 +114,25 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		}
 	}
 	
-	this->vertexCount = verts.size();
+	this->heightmapVertexCount = verts.size();
 	D3D11_BUFFER_DESC vertexBufferDesc;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex);
-	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
+	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex2D);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex2D);
 
 	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
 	vertexBufferSubresourceData.pSysMem = verts.data();
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->heightmapVB), "Create Main VB", this->gfx.device.Get());
 
-	UINT vbStrides[] = { sizeof(Vertex) };
-	UINT vbOffsets[] = { 0 };
-	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
-	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	vertexBufferDesc.ByteWidth = skyCubeVerts.size() * sizeof(Vertex3D);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex3D);
+	vertexBufferSubresourceData.pSysMem = skyCubeVerts.data();
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->skyboxVB), "Create skybox VB", this->gfx.device.Get());
 
-	ConstantBuffer cb;
-	memset(&cb, 0, sizeof(cb));
+	//Create constant buffer
 	D3D11_BUFFER_DESC cbd;
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -135,10 +141,23 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	cbd.ByteWidth = sizeof(ConstantBuffer);
 	cbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &cb;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
-	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
-	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
+	csd.pSysMem = &this->mainCB_CPU;
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->mainConstantBuffer), "Create constant buffer");
+
+	//Create skybox cubemap and sampler
+	std::array<std::string, 6> skyboxCubemapPaths;
+	for (int i = 0; i < 6; ++i)
+	{
+		skyboxCubemapPaths[i] = "images/sky/" + std::to_string(i) + ".png";
+	}
+	this->skyboxCubemap = CubemapTexture(skyboxCubemapPaths, this->gfx);
+
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; //D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	float skyboxBorderColor[4] = { 1.f,0.f,1.f,1.f }; //magenta
+	memcpy(samplerDesc.BorderColor, skyboxBorderColor, sizeof(skyboxBorderColor));
+	DX_THROW_ON_FAIL(this->gfx.device->CreateSamplerState(&samplerDesc, &this->skyboxSamplerState));
 }
 
 void Game::beginNewFrame()
@@ -155,7 +174,7 @@ static std::ostream& operator<<(std::ostream& os, const XMVECTOR& v)
 {
 	for (int i = 0; i < 4; ++i)
 	{
-		os << v.vector4_f32[i];
+		os << XMVectorGetByIndex(v, i);
 		if (i != 3) os << ", ";
 	}
 	return os;
@@ -231,8 +250,8 @@ void Game::update(const std::vector<SDL_Event>& events)
 
 	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng);
 	XMVECTOR camAdd = XMVectorZero();
-	XMVECTOR right = XMVectorSet(rotation.m[0][0], rotation.m[0][1], rotation.m[0][2], 0.f);
-	XMVECTOR forward = XMVectorSet(rotation.m[2][0], rotation.m[2][1], rotation.m[2][2], 0.f);
+	XMVECTOR right = XMVectorSet(XMVectorGetX(rotation.r[0]), XMVectorGetY(rotation.r[0]), XMVectorGetZ(rotation.r[0]), 0);
+	XMVECTOR forward = XMVectorSet(XMVectorGetX(rotation.r[2]), XMVectorGetY(rotation.r[2]), XMVectorGetZ(rotation.r[2]), 0);
 	if (inp.isButtonHeld(SDL_SCANCODE_W)) camAdd += forward;
 	if (inp.isButtonHeld(SDL_SCANCODE_S)) camAdd -= forward;
 	if (inp.isButtonHeld(SDL_SCANCODE_A)) camAdd -= right;
@@ -245,29 +264,60 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
-	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+}
+
+void Game::draw()
+{
+	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng); // TODO: pass it through from update stage, to avoid possibility of mismatch
+	XMMATRIX translation = XMMatrixTranslation(-XMVectorGetX(this->camPos), -XMVectorGetY(this->camPos), -XMVectorGetZ(this->camPos));
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 100000.f, 0.1f);
-	XMMATRIX transform = view * projection;
 
+	this->mainCB_CPU.camPos = this->camPos;
+	this->mainCB_CPU.lightDir = XMVector3Normalize(this->lightDir);
+	this->mainCB_CPU.view = XMMatrixTranspose(view);
+	this->mainCB_CPU.projection = XMMatrixTranspose(projection);
+	this->mainCB_CPU.viewProjection = XMMatrixTranspose(view * projection);
+	this->mainCB_CPU.time = XMVectorSet(this->gameTime, this->globalTime, 0, 0);
+	this->mainCB_CPU.fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
 	D3D11_MAPPED_SUBRESOURCE mappedCb = {};
-	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
-	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
-	cb->transformation = XMMatrixTranspose(transform);
-	cb->time = XMVectorSet(this->gameTime,0,0,0);
-	cb->fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
-	cb->camPos = this->camPos;
-	cb->lightDir = XMVector3Normalize(this->lightDir);
-	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
+	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->mainConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
+	memcpy(mappedCb.pData, &this->mainCB_CPU, sizeof(this->mainCB_CPU));
+	this->gfx.deviceContext->Unmap(this->mainConstantBuffer.Get(), 0);
 
+	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
-	float r = 0;
-	float g = 0;
-	float b = 0;
-	float clear[4] = { r,g,b,1 };
+	float clear[4] = { 0,0,0,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);
+	UINT skyboxVbStride = sizeof(Vertex3D);
+	UINT skyboxVbOffset = 0;
+	UINT heightmapVbStride = sizeof(Vertex2D);
+	UINT heightmapVbOffset = 0;
+
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->skyboxVB.GetAddressOf(), &skyboxVbStride, &skyboxVbOffset);
+	this->gfx.deviceContext->VSSetShader(this->skyboxVS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->PSSetShader(this->skyboxPS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->IASetInputLayout(this->skyboxVS.inputLayout.Get());
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetShaderResources(0, 1, this->skyboxCubemap.srv.GetAddressOf());
+	this->gfx.deviceContext->PSSetSamplers(0, 1, this->skyboxSamplerState.GetAddressOf());
+	this->gfx.deviceContext->OMSetDepthStencilState(this->skyboxDepthStencilState.Get(), 0);
+	this->gfx.deviceContext->Draw(this->skyCubeVertexCount, 0);
+	
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
+	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
+	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->OMSetDepthStencilState(this->mainDepthStencilState.Get(), 0);
+	this->gfx.deviceContext->Draw(this->heightmapVertexCount, 0);
+}
+
+void Game::present()
+{
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get());
 }
