@@ -43,6 +43,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> heightmapVB, mainConstantBuffer, skyboxVB;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencil;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
-
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> skyboxSamplerState;
 	CubemapTexture skyboxCubemap;
 };

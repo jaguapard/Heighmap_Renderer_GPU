@@ -218,6 +218,13 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		skyboxCubemapPaths[i] = "images/sky/" + std::to_string(i) + ".png";
 	}
 	this->skyboxCubemap = CubemapTexture(skyboxCubemapPaths, this->gfx);
+
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; //D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	float skyboxBorderColor[4] = { 1.f,0.f,1.f,1.f }; //magenta
+	memcpy(samplerDesc.BorderColor, skyboxBorderColor, sizeof(skyboxBorderColor));
+	DX_THROW_ON_FAIL(this->gfx.device->CreateSamplerState(&samplerDesc, &this->skyboxSamplerState));
 }
 
 void Game::beginNewFrame()
