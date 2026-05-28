@@ -1,6 +1,14 @@
 #include "cbuff.hlsli"
 
-float4 main(float3 pos : Pos, float2 uv: UV) : SV_Position
+struct VSOut
 {
-    return mul(float4(pos, 1), viewProjection);
+    float4 pos : SV_Position;
+    float2 uv : TEXCOORD0;
+};
+VSOut main(float3 pos : Pos, float2 uv: UV)
+{
+    VSOut vso;
+    vso.pos = mul(float4(pos, 1), viewProjection);
+    vso.uv = uv;
+    return vso;
 }

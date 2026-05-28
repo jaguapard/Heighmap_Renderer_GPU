@@ -1,5 +1,5 @@
 
-float4 main(uint id : SV_PrimitiveID) : SV_Target
+float4 main(uint id : SV_PrimitiveID, float2 uv : TEXCOORD0) : SV_Target
 {
     float r = id & 1;
     float g = id & 2;
