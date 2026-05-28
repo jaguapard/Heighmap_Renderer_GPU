@@ -82,54 +82,64 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
 	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
 
-	//Vertices of a cube centered at origin (0,0,0). Each face's side length is 1. Winding not determined (i.e. you should correct it yourself)
-	std::array<float, 3>cubeVerts[] = {
-		//front
-		{-0.5,0.5,0.5},
-		{0.5, 0.5,0.5},
-		{0.5,-0.5,0.5},
-		{0.5,-0.5,0.5},
-		{-0.5,-0.5,0.5},
-		{-0.5,0.5,0.5},
-		//back
-		{-0.5,0.5,-0.5},
-		{0.5, 0.5,-0.5},
-		{0.5,-0.5,-0.5},
-		{0.5,-0.5,-0.5},
-		{-0.5,-0.5,-0.5},
-		{-0.5,0.5,-0.5},
+	// Cube centered at origin, side length 1.
+	// Fully expanded vertices, data order: x, y, z, u, v
+	// CCW winding looking at each face from outside.
+	std::array<float, 5> cubeVerts[] = {
 
-		//top
-		{-0.5, 0.5, 0.5},
-		{0.5, 0.5, 0.5},
-		{0.5, 0.5, -0.5},
-		{0.5, 0.5, -0.5},
-		{-0.5, 0.5, -0.5},
-		{-0.5, 0.5, 0.5},
+		// Front (+Z)
+		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
 
-		//bottom
-		{-0.5, -0.5, 0.5},
-		{0.5, -0.5, 0.5},
-		{0.5, -0.5, -0.5},
-		{0.5, -0.5, -0.5},
-		{-0.5, -0.5, -0.5},
-		{-0.5, -0.5, 0.5},
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
 
-		//left
-		{-0.5, 0.5, -0.5},
-		{-0.5, 0.5, 0.5},
-		{-0.5, -0.5, 0.5},
-		{-0.5, -0.5, 0.5},
-		{-0.5, -0.5, -0.5},
-		{-0.5, 0.5, -0.5},
+		// Back (-Z)
+		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{ 0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
 
-		//right
-		{0.5, 0.5, -0.5},
-		{0.5, 0.5, 0.5},
-		{0.5, -0.5, 0.5},
-		{0.5, -0.5, 0.5},
-		{0.5, -0.5, -0.5},
-		{0.5, 0.5, -0.5},
+		{-0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{-0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Left (-X)
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+
+		{-0.5f, -0.5f,  0.5f, 1.0f, 1.0f},
+		{-0.5f,  0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Right (+X)
+		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+		{ 0.5f, -0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{ 0.5f,  0.5f,  0.5f, 0.0f, 0.0f},
+
+		// Top (+Y)
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+		{-0.5f,  0.5f,  0.5f, 0.0f, 1.0f},
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
+
+		{ 0.5f,  0.5f,  0.5f, 1.0f, 1.0f},
+		{ 0.5f,  0.5f, -0.5f, 1.0f, 0.0f},
+		{-0.5f,  0.5f, -0.5f, 0.0f, 0.0f},
+
+		// Bottom (-Y)
+		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
+		{-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+
+		{ 0.5f, -0.5f, -0.5f, 1.0f, 1.0f},
+		{ 0.5f, -0.5f,  0.5f, 1.0f, 0.0f},
+		{-0.5f, -0.5f,  0.5f, 0.0f, 0.0f},
 	};
 
 	std::vector<Vertex3D> skyCubeVerts;
@@ -140,8 +150,8 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		v.x = cubeVerts[i][0] * sz;
 		v.y = cubeVerts[i][1] * sz;
 		v.z = cubeVerts[i][2] * sz;
-		v.u = cubeVerts[i][0] + 0.5; //TODO: not correct
-		v.v = cubeVerts[i][1] + 0.5;
+		v.u = cubeVerts[i][3];
+		v.v = cubeVerts[i][4];
 	}
 	this->skyCubeVertexCount = skyCubeVerts.size();
 
