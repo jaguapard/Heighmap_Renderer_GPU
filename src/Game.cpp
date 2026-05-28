@@ -269,7 +269,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 void Game::draw()
 {
 	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng); // TODO: pass it through from update stage, to avoid possibility of mismatch
-	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
+	XMMATRIX translation = XMMatrixTranslation(-XMVectorGetX(this->camPos), -XMVectorGetY(this->camPos), -XMVectorGetZ(this->camPos));
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 100000.f, 0.1f);
 
