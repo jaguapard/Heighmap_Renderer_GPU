@@ -28,25 +28,17 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->lightDir = XMVectorSet(0, -1, 0, 0);
 
 	//Create main vertex shader
-	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
-	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
-	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
-	DX_THROW_ON_FAIL(this->gfx.device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &this->basicVS), "Create basic VS");
-	this->gfx.deviceContext->VSSetShader(this->basicVS.Get(), nullptr, 0);
+	ShaderCreationDesc vsDesc;
+	vsDesc.path = "BasicVS.cso";
+	vsDesc.inputLayout = { {"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0} };
+	this->mainVS = Shader<ID3D11VertexShader>(this->gfx, vsDesc);
+	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
 
-	//Create main pixel shader
-	Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-	DX_THROW_ON_FAIL(D3DReadFileToBlob((Graphics::SHADERS_FOLDER + L"BasicPS.cso").c_str(), &psBlob), "Read basic PS blob");
-	DX_THROW_ON_FAIL(this->gfx.device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &this->basicPS), "Create basic PS");
-	this->gfx.deviceContext->PSSetShader(this->basicPS.Get(), nullptr, 0);
-
-	//Input assembler input layout for main vertex shader
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> vsInputLayout;
-	const D3D11_INPUT_ELEMENT_DESC vsInputLayoutElemets[] = {
-		{"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
-	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
+	ShaderCreationDesc psDesc;
+	psDesc.path = "BasicPS.cso";
+	this->mainPS = Shader<ID3D11PixelShader>(this->gfx, psDesc);
+	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
 
 	//Disable backface culling
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
