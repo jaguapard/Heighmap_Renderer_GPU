@@ -26,17 +26,21 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->camAng = XMVectorZero();
 	this->camPos = XMVectorSet(0, 100, 0, 0);
 	this->lightDir = XMVectorSet(0, -1, 0, 0);
+
+	//Create main vertex shader
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
 	std::wstring vsPath = Graphics::SHADERS_FOLDER + L"BasicVS.cso";
 	DX_THROW_ON_FAIL(D3DReadFileToBlob(vsPath.c_str(), &vsBlob), "Read basic VS blob");
 	DX_THROW_ON_FAIL(this->gfx.device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &this->basicVS), "Create basic VS");
 	this->gfx.deviceContext->VSSetShader(this->basicVS.Get(), nullptr, 0);
 
+	//Create main pixel shader
 	Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
 	DX_THROW_ON_FAIL(D3DReadFileToBlob((Graphics::SHADERS_FOLDER + L"BasicPS.cso").c_str(), &psBlob), "Read basic PS blob");
 	DX_THROW_ON_FAIL(this->gfx.device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &this->basicPS), "Create basic PS");
 	this->gfx.deviceContext->PSSetShader(this->basicPS.Get(), nullptr, 0);
 
+	//Input assembler input layout for main vertex shader
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> vsInputLayout;
 	const D3D11_INPUT_ELEMENT_DESC vsInputLayoutElemets[] = {
 		{"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -44,13 +48,15 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateInputLayout(vsInputLayoutElemets, std::size(vsInputLayoutElemets), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &vsInputLayout), "Create input layout for basic VS");
 	this->gfx.deviceContext->IASetInputLayout(vsInputLayout.Get());
 
+	//Disable backface culling
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
 	D3D11_RASTERIZER_DESC rdsc = {};
 	rdsc.FillMode = D3D11_FILL_SOLID;
 	rdsc.CullMode = D3D11_CULL_NONE;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateRasterizerState(&rdsc, &rasterizerState), "Create rasterizer state");
 	this->gfx.deviceContext->RSSetState(rasterizerState.Get());
-
+	
+	//Create and set depth buffer
 	D3D11_TEXTURE2D_DESC descDepth = {};
 	descDepth.Width = this->gfx.w;
 	descDepth.Height = this->gfx.h;
@@ -78,6 +84,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
 	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
 
+	//Generate and set vertex buffers
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?
 	this->fieldSize = 20000;
@@ -125,6 +132,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	//Create constant buffer
 	ConstantBuffer cb;
 	memset(&cb, 0, sizeof(cb));
 	D3D11_BUFFER_DESC cbd;
@@ -140,6 +148,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 
+	//Create skybox cubemap
 	std::array<std::string, 6> skyboxCubemapPaths;
 	for (int i = 0; i < 6; ++i)
 	{
