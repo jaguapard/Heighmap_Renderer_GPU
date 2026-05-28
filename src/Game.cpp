@@ -132,8 +132,6 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	vertexBufferSubresourceData.pSysMem = skyCubeVerts.data();
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->skyboxVB), "Create skybox VB", this->gfx.device.Get());
 
-	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	//Create constant buffer
 	D3D11_BUFFER_DESC cbd;
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -287,11 +285,9 @@ void Game::draw()
 	memcpy(mappedCb.pData, &this->mainCB_CPU, sizeof(this->mainCB_CPU));
 	this->gfx.deviceContext->Unmap(this->mainConstantBuffer.Get(), 0);
 
+	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
-	float r = 0;
-	float g = 0;
-	float b = 0;
-	float clear[4] = { r,g,b,1 };
+	float clear[4] = { 0,0,0,1 };
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 
