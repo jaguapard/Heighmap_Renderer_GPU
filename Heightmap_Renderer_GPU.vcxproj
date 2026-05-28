@@ -175,6 +175,7 @@
     <ClInclude Include="src\errors.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\Graphics.h" />
+    <ClInclude Include="src\smart.h" />
     <ClInclude Include="src\utils.h" />
   </ItemGroup>
   <ItemGroup>
