@@ -3,12 +3,12 @@
 #include "utils.h"
 #include <filesystem>
 
-const std::wstring Graphics::SHADERS_FOLDER = []() {
+const std::string Graphics::SHADERS_FOLDER = []() {
     std::wstring modulePath = utils::getCurrModuleFullPath();
     auto p = std::filesystem::path(modulePath);
     auto r = p.remove_filename();
     r.append(L"Shaders\\");
-    return r.wstring();
+    return r.string();
     }();
 Graphics::Graphics(uint32_t w, uint32_t h)
 {
