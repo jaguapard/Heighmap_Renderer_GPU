@@ -135,8 +135,6 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Create constant buffer
-	ConstantBuffer cb;
-	memset(&cb, 0, sizeof(cb));
 	D3D11_BUFFER_DESC cbd;
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -145,12 +143,10 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	cbd.ByteWidth = sizeof(ConstantBuffer);
 	cbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &cb;
+	csd.pSysMem = &this->mainCB_CPU;
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->mainConstantBuffer), "Create constant buffer");
-	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
-	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 
-	//Create skybox cubemap
+	//Create skybox cubemap and sampler
 	std::array<std::string, 6> skyboxCubemapPaths;
 	for (int i = 0; i < 6; ++i)
 	{
