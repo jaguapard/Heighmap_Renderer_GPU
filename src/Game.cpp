@@ -82,10 +82,6 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
 	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
 
-	float sz = 10000;
-	//v texture coord should be negated?
-	//TODO: currently it's only 1 face out of 6
-
 	//Vertices of a cube centered at origin (0,0,0). Each face's side length is 1. Winding not determined (i.e. you should correct it yourself)
 	std::array<float, 3>cubeVerts[] = {
 		//front
@@ -137,6 +133,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	};
 
 	std::vector<Vertex3D> skyCubeVerts;
+	float sz = 10000;
 	for (int i = 0; i < std::size(cubeVerts); ++i)
 	{
 		Vertex3D& v = skyCubeVerts.emplace_back();
@@ -368,14 +365,14 @@ void Game::draw()
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->Draw(this->skyCubeVertexCount, 0);
-	/*
+	
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
 	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
 	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);*/
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 }
 
 void Game::present()
