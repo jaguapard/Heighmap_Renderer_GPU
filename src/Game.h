@@ -14,6 +14,8 @@ public:
 	void beginNewFrame();
 	void handleEvent(SDL_Event& event);
 	void update(const std::vector<SDL_Event>& events);
+	void draw();
+	void present();
 private:
 	Graphics& gfx;
 	uint64_t prevTicks = 0, startTicks = 0;

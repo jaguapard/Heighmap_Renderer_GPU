@@ -41,6 +41,8 @@ int main(int argc, char* argv[])
 			}
 			game.update(sdlEvents);
 			sdlEvents.clear();
+			game.draw();
+			game.present();
 		}
 	}
 	catch (const std::exception& e)

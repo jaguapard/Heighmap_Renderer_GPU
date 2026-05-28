@@ -261,6 +261,11 @@ void Game::update(const std::vector<SDL_Event>& events)
 		std::cout << this->camPos << "\n";
 	}
 	
+}
+
+void Game::draw()
+{
+	XMMATRIX rotation = XMMatrixRotationRollPitchYawFromVector(this->camAng); // TODO: pass it through from update stage, to avoid possibility of mismatch
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 100000.f, 0.1f);
@@ -270,7 +275,7 @@ void Game::update(const std::vector<SDL_Event>& events)
 	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
 	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
 	cb->transformation = XMMatrixTranspose(transform);
-	cb->time = XMVectorSet(this->gameTime,0,0,0);
+	cb->time = XMVectorSet(this->gameTime, 0, 0, 0);
 	cb->fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
 	cb->camPos = this->camPos;
 	cb->lightDir = XMVector3Normalize(this->lightDir);
@@ -285,5 +290,9 @@ void Game::update(const std::vector<SDL_Event>& events)
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
+}
+
+void Game::present()
+{
 	DX_THROW_ON_FAIL(this->gfx.swapChain->Present(this->vsyncEnabled ? 1 : 0, 0), "Swapchain present", this->gfx.device.Get());
 }
