@@ -78,9 +78,14 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	dsDesc.StencilEnable = false;
 	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	dsDesc.DepthFunc = D3D11_COMPARISON_GREATER; //using reverse depth, greater comparison is needed
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> dsState;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
-	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
+	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &this->mainDepthStencilState), "Create depth stencil state");
+
+	//to avoid headaches with the sky, just render it first without depth tests and writes
+	dsDesc.DepthEnable = false;
+	dsDesc.StencilEnable = false;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	this->gfx.device->CreateDepthStencilState(&dsDesc, &this->skyboxDepthStencilState);
+
 
 	// Cube centered at origin, side length 1.
 	// Fully expanded vertices, data order: x, y, z, u, v
@@ -383,6 +388,7 @@ void Game::draw()
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetShaderResources(0, 1, this->skyboxCubemap.srv.GetAddressOf());
 	this->gfx.deviceContext->PSSetSamplers(0, 1, this->skyboxSamplerState.GetAddressOf());
+	this->gfx.deviceContext->OMSetDepthStencilState(this->skyboxDepthStencilState.Get(), 0);
 	this->gfx.deviceContext->Draw(this->skyCubeVertexCount, 0);
 	
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
@@ -391,6 +397,7 @@ void Game::draw()
 	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->OMSetDepthStencilState(this->mainDepthStencilState.Get(), 0);
 	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 }
 

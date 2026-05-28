@@ -8,9 +8,10 @@ struct VSOut
 VSOut main(float3 pos : Pos, float2 uv: UV)
 {
     VSOut vso;
-    vso.pos = mul(float4(pos, 1), viewProjection);
+    vso.pos = mul(float4(pos, 0), viewProjection);
     vso.worldPos = pos;
     //TODO: force w to 0 in pos mult, and uncomment:
     //vso.pos.z = vso.pos.w; //Or not? Reverse z-buffer! infinity? Force 0 depth after perspecive divide. Z_NEAR?
+    vso.pos.z = vso.pos.w;
     return vso;
 }
