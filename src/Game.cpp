@@ -371,6 +371,8 @@ void Game::draw()
 	this->gfx.deviceContext->IASetInputLayout(this->skyboxVS.inputLayout.Get());
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetShaderResources(0, 1, this->skyboxCubemap.srv.GetAddressOf());
+	this->gfx.deviceContext->PSSetSamplers(0, 1, this->skyboxSamplerState.GetAddressOf());
 	this->gfx.deviceContext->Draw(this->skyCubeVertexCount, 0);
 	
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
