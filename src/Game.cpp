@@ -81,8 +81,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	this->gfx.device->CreateDepthStencilState(&dsDesc, &this->skyboxDepthStencilState);
 
-	float sz = 10000;
-	std::vector<Vertex3D> skyCubeVerts = this->gfx.generateRectangularCuboidNoDedup(XMVectorZero(), XMVectorSet(sz, sz, sz, 0));
+	std::vector<Vertex3D> skyCubeVerts = this->gfx.generateRectangularCuboidNoDedup();
 	this->skyCubeVertexCount = skyCubeVerts.size();
 
 	//Generate and set vertex buffers
@@ -126,7 +125,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 
 	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
 	vertexBufferSubresourceData.pSysMem = verts.data();
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->heightmapVB), "Creat Main VB", this->gfx.device.Get());
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->heightmapVB), "Create Main VB", this->gfx.device.Get());
 
 	vertexBufferDesc.ByteWidth = skyCubeVerts.size() * sizeof(Vertex3D);
 	vertexBufferDesc.StructureByteStride = sizeof(Vertex3D);
