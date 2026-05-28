@@ -34,7 +34,7 @@ private:
 	bool vsyncEnabled = true;
 	float flySpeed = 2500;
 	float fieldSize;
-	UINT vertexCount, skyCubeVertexCount;
+	UINT heightmapVertexCount, skyCubeVertexCount;
 	ConstantBuffer mainCB_CPU;
 	DirectX::XMVECTOR camPos, camAng, lightDir;
 	Shader<ID3D11VertexShader> mainVS, skyboxVS;

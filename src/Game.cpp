@@ -114,7 +114,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		}
 	}
 	
-	this->vertexCount = verts.size();
+	this->heightmapVertexCount = verts.size();
 	D3D11_BUFFER_DESC vertexBufferDesc;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -322,7 +322,7 @@ void Game::draw()
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->OMSetDepthStencilState(this->mainDepthStencilState.Get(), 0);
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);
+	this->gfx.deviceContext->Draw(this->heightmapVertexCount, 0);
 }
 
 void Game::present()
