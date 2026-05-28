@@ -4,6 +4,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <DirectXMath.h>
+#include "CubemapTexture.h"
 
 class Graphics;
 class Game
@@ -29,4 +30,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer, constantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencil;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
+
+	CubemapTexture skyboxCubemap;
 };

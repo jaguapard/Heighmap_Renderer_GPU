@@ -139,6 +139,13 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
+
+	std::array<std::string, 6> skyboxCubemapPaths;
+	for (int i = 0; i < 6; ++i)
+	{
+		skyboxCubemapPaths[i] = "images/sky/" + std::to_string(i) + ".png";
+	}
+	this->skyboxCubemap = CubemapTexture(skyboxCubemapPaths, this->gfx);
 }
 
 void Game::beginNewFrame()
