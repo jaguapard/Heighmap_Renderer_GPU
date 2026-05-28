@@ -94,15 +94,69 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	float sz = 10000;
 	//v texture coord should be negated?
 	//TODO: currently it's only 1 face out of 6
-	std::vector<Vertex3D> skyCubeVerts = {
-		{0, 0, 0, 0, 0},
-		{sz,0,0, 1, 0},
-		{sz, -sz, 0, 0, 1},
 
-		{sz, -sz, 0, 0, 1},
-		{0, -sz, 0, 0, 1},
-		{0, 0, 0, 0, 0},
+	//Vertices of a cube centered at origin (0,0,0). Each face's side length is 1. Winding not determined (i.e. you should correct it yourself)
+	std::array<float, 3>cubeVerts[] = {
+		//front
+		{-0.5,0.5,0.5},
+		{0.5, 0.5,0.5},
+		{0.5,-0.5,0.5},
+		{0.5,-0.5,0.5},
+		{-0.5,-0.5,0.5},
+		{-0.5,0.5,0.5},
+		//back
+		{-0.5,0.5,-0.5},
+		{0.5, 0.5,-0.5},
+		{0.5,-0.5,-0.5},
+		{0.5,-0.5,-0.5},
+		{-0.5,-0.5,-0.5},
+		{-0.5,0.5,-0.5},
+
+		//top
+		{-0.5, 0.5, 0.5},
+		{0.5, 0.5, 0.5},
+		{0.5, 0.5, -0.5},
+		{0.5, 0.5, -0.5},
+		{-0.5, 0.5, -0.5},
+		{-0.5, 0.5, 0.5},
+
+		//bottom
+		{-0.5, -0.5, 0.5},
+		{0.5, -0.5, 0.5},
+		{0.5, -0.5, -0.5},
+		{0.5, -0.5, -0.5},
+		{-0.5, -0.5, -0.5},
+		{-0.5, -0.5, 0.5},
+
+		//left
+		{-0.5, 0.5, -0.5},
+		{-0.5, 0.5, 0.5},
+		{-0.5, -0.5, 0.5},
+		{-0.5, -0.5, 0.5},
+		{-0.5, -0.5, -0.5},
+		{-0.5, 0.5, -0.5},
+
+		//right
+		{0.5, 0.5, -0.5},
+		{0.5, 0.5, 0.5},
+		{0.5, -0.5, 0.5},
+		{0.5, -0.5, 0.5},
+		{0.5, -0.5, -0.5},
+		{0.5, 0.5, -0.5},
 	};
+
+	std::vector<Vertex3D> skyCubeVerts;
+	for (int i = 0; i < std::size(cubeVerts); ++i)
+	{
+		Vertex3D& v = skyCubeVerts.emplace_back();
+		v.x = cubeVerts[i][0] * sz;
+		v.y = cubeVerts[i][1] * sz;
+		v.z = cubeVerts[i][2] * sz;
+		v.u = cubeVerts[i][0] + 0.5; //TODO: not correct
+		v.v = cubeVerts[i][1] + 0.5;
+	}
+	this->skyCubeVertexCount = skyCubeVerts.size();
+
 	//Generate and set vertex buffers
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
 	//TODO: can probably generate this on GPU?  check out SV_VertexID
@@ -321,15 +375,15 @@ void Game::draw()
 	this->gfx.deviceContext->IASetInputLayout(this->skyboxVS.inputLayout.Get());
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
-	this->gfx.deviceContext->Draw(6, 0);
-	
+	this->gfx.deviceContext->Draw(this->skyCubeVertexCount, 0);
+	/*
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
 	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
 	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);*/
 }
 
 void Game::present()
