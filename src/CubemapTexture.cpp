@@ -5,7 +5,7 @@ CubemapTexture::CubemapTexture(std::array<std::string, 6> paths, Graphics& gfx)
 {
 	D3D11_TEXTURE2D_DESC texDesc = {};
 	texDesc.ArraySize = 6;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; //TODO: sure about it?
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	texDesc.CPUAccessFlags = 0;
 	texDesc.MipLevels = 1;
 	texDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -23,7 +23,7 @@ CubemapTexture::CubemapTexture(std::array<std::string, 6> paths, Graphics& gfx)
 		auto s = Smart_Surface(IMG_Load(paths[i].c_str()));
 		if (!s) RAISE_ERROR(baseErrMsg + "IMG_Load");
 
-		surfaces[i] = Smart_Surface(SDL_ConvertSurface(s.get(), SDL_PIXELFORMAT_RGBA8888)); //is this the same as above?
+		surfaces[i] = Smart_Surface(SDL_ConvertSurface(s.get(), SDL_PIXELFORMAT_RGBA32));
 		if (!surfaces[i]) RAISE_ERROR(baseErrMsg + "SDL_ConverSurface");
 		if (i == 0)
 		{
@@ -45,8 +45,7 @@ CubemapTexture::CubemapTexture(std::array<std::string, 6> paths, Graphics& gfx)
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = texDesc.Format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-	srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
-	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.TextureCube.MipLevels = texDesc.MipLevels;
+	srvDesc.TextureCube.MostDetailedMip = 0;
 	DX_THROW_ON_FAIL(gfx.device->CreateShaderResourceView(this->texture.Get(), &srvDesc, &this->srv));
-
 }
