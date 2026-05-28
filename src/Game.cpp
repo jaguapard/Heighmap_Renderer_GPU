@@ -12,7 +12,7 @@ struct Vertex2D {
 };
 
 struct Vertex3D {
-	float x, y, z;
+	float x, y, z, u, v;
 };
 
 //Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
@@ -36,8 +36,19 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	vsDesc.path = "BasicVS.cso";
 	vsDesc.inputLayout = { {"Pos", 0, DXGI_FORMAT_R32G32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0} };
 	this->mainVS = Shader<ID3D11VertexShader>(this->gfx, vsDesc);
-	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
-	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
+
+	ShaderCreationDesc skyboxVsDesc;
+	skyboxVsDesc.path = "SkyboxVS.cso";
+	skyboxVsDesc.inputLayout = {
+		{"Pos", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0,D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,D3D11_APPEND_ALIGNED_ELEMENT,D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
+	this->skyboxVS = Shader<ID3D11VertexShader>(this->gfx, skyboxVsDesc);
+
+	ShaderCreationDesc skyboxPsDesc;
+	skyboxPsDesc.path = "SkyboxPS.cso";
+	this->skyboxPS = Shader<ID3D11PixelShader>(this->gfx, skyboxPsDesc);
+
 
 	ShaderCreationDesc psDesc;
 	psDesc.path = "BasicPS.cso";
@@ -80,9 +91,21 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateDepthStencilState(&dsDesc, &dsState), "Create depth stencil state");
 	this->gfx.deviceContext->OMSetDepthStencilState(dsState.Get(), 0);
 
+	float sz = 10000;
+	//v texture coord should be negated?
+	//TODO: currently it's only 1 face out of 6
+	std::vector<Vertex3D> skyCubeVerts = {
+		{0, 0, 0, 0, 0},
+		{sz,0,0, 1, 0},
+		{sz, -sz, 0, 0, 1},
+
+		{sz, -sz, 0, 0, 1},
+		{0, -sz, 0, 0, 1},
+		{0, 0, 0, 0, 0},
+	};
 	//Generate and set vertex buffers
 	//This is 2D mathematical vertices, i.e x,y. In 3D, the y is put into Z coordinate, since Y is height that will be calculated from a function
-	//TODO: can probably generate this on GPU?
+	//TODO: can probably generate this on GPU?  check out SV_VertexID
 	this->fieldSize = 20000;
 	int subdivisions = 400;
 	std::vector<Vertex2D> verts;
@@ -121,11 +144,13 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 
 	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
 	vertexBufferSubresourceData.pSysMem = verts.data();
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->heightmapVB), "Creat Main VB", this->gfx.device.Get());
 
-	UINT vbStrides[] = { sizeof(Vertex2D) };
-	UINT vbOffsets[] = { 0 };
-	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
+	vertexBufferDesc.ByteWidth = skyCubeVerts.size() * sizeof(Vertex3D);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex3D);
+	vertexBufferSubresourceData.pSysMem = skyCubeVerts.data();
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->skyboxVB), "Create skybox VB", this->gfx.device.Get());
+
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Create constant buffer
@@ -140,9 +165,9 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	cbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA csd;
 	csd.pSysMem = &cb;
-	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->constantBuffer), "Create constant buffer");
-	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
-	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->constantBuffer.GetAddressOf());
+	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->mainConstantBuffer), "Create constant buffer");
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 
 	//Create skybox cubemap
 	std::array<std::string, 6> skyboxCubemapPaths;
@@ -268,14 +293,14 @@ void Game::draw()
 	XMMATRIX transform = view * projection;
 
 	D3D11_MAPPED_SUBRESOURCE mappedCb = {};
-	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
+	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->mainConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
 	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
 	cb->transformation = XMMatrixTranspose(transform);
 	cb->time = XMVectorSet(this->gameTime, 0, 0, 0);
 	cb->fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
 	cb->camPos = this->camPos;
 	cb->lightDir = XMVector3Normalize(this->lightDir);
-	this->gfx.deviceContext->Unmap(this->constantBuffer.Get(), 0);
+	this->gfx.deviceContext->Unmap(this->mainConstantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
 	float r = 0;
@@ -285,7 +310,22 @@ void Game::draw()
 	this->gfx.deviceContext->ClearRenderTargetView(this->gfx.mainRenderTargetView.Get(), clear);
 	this->gfx.deviceContext->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);
+	UINT skyboxVbStride = sizeof(Vertex3D);
+	UINT skyboxVbOffset = 0;
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->skyboxVB.GetAddressOf(), &skyboxVbStride, &skyboxVbOffset);
+	this->gfx.deviceContext->VSSetShader(this->skyboxVS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->PSSetShader(this->skyboxPS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->IASetInputLayout(this->skyboxVS.inputLayout.Get());
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->Draw(6, 0);
+	/*
+	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
+	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
+	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);*/
 }
 
 void Game::present()

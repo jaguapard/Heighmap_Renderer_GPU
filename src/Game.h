@@ -27,10 +27,10 @@ private:
 	float fieldSize;
 	UINT vertexCount;
 	DirectX::XMVECTOR camPos, camAng, lightDir;
-	Shader<ID3D11VertexShader> mainVS;
-	Shader<ID3D11PixelShader> mainPS;
+	Shader<ID3D11VertexShader> mainVS, skyboxVS;
+	Shader<ID3D11PixelShader> mainPS, skyboxPS;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer, constantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> heightmapVB, mainConstantBuffer, skyboxVB;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencil;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 
