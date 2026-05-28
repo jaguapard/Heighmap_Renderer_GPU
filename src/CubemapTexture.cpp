@@ -19,8 +19,12 @@ CubemapTexture::CubemapTexture(std::array<std::string, 6> paths, Graphics& gfx)
 	Smart_Surface surfaces[6];
 	for (int i = 0; i < 6; ++i)
 	{
-		surfaces[i] = Smart_Surface(IMG_Load(paths[i].c_str()));
-		if (!surfaces[i]) RAISE_ERROR("Error while loading cubemap texture " + paths[i]);
+		std::string baseErrMsg = "Error while loading cubemap texture " + paths[i] + ": ";
+		auto s = Smart_Surface(IMG_Load(paths[i].c_str()));
+		if (!s) RAISE_ERROR(baseErrMsg + "IMG_Load");
+
+		surfaces[i] = Smart_Surface(SDL_ConvertSurface(s.get(), SDL_PIXELFORMAT_RGBA8888)); //is this the same as above?
+		if (!surfaces[i]) RAISE_ERROR(baseErrMsg + "SDL_ConverSurface");
 		if (i == 0)
 		{
 			texDesc.Width = surfaces[i]->w;

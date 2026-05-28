@@ -1,9 +1,9 @@
 
-Texture2D tex;
-SamplerState samplerState;
+TextureCube tex;
+SamplerState sam;
 float4 main(uint id : SV_PrimitiveID, float2 uv : TEXCOORD0) : SV_Target
 {
-    return tex.Sample(samplerState, uv);
+    return tex.Sample(sam, float3(uv, 1));
     float r = id & 1;
     float g = id & 2;
     float b = id & 4;
