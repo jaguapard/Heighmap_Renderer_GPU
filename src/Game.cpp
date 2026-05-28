@@ -312,6 +312,9 @@ void Game::draw()
 
 	UINT skyboxVbStride = sizeof(Vertex3D);
 	UINT skyboxVbOffset = 0;
+	UINT heightmapVbStride = sizeof(Vertex2D);
+	UINT heightmapVbOffset = 0;
+
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->skyboxVB.GetAddressOf(), &skyboxVbStride, &skyboxVbOffset);
 	this->gfx.deviceContext->VSSetShader(this->skyboxVS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->PSSetShader(this->skyboxPS.shader.Get(), nullptr, 0);
@@ -319,13 +322,14 @@ void Game::draw()
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->Draw(6, 0);
-	/*
+	
+	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->heightmapVB.GetAddressOf(), &heightmapVbStride, &heightmapVbOffset);
 	this->gfx.deviceContext->VSSetShader(this->mainVS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->IASetInputLayout(this->mainVS.inputLayout.Get());
 	this->gfx.deviceContext->PSSetShader(this->mainPS.shader.Get(), nullptr, 0);
 	this->gfx.deviceContext->VSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
 	this->gfx.deviceContext->PSSetConstantBuffers(0, 1, this->mainConstantBuffer.GetAddressOf());
-	this->gfx.deviceContext->Draw(this->vertexCount, 0);*/
+	this->gfx.deviceContext->Draw(this->vertexCount, 0);
 }
 
 void Game::present()
