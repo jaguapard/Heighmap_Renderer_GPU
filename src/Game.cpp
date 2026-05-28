@@ -7,8 +7,12 @@
 #include "C_Input.h"
 #include <iostream>
 using namespace DirectX;
-struct Vertex {
+struct Vertex2D {
 	float x, y;
+};
+
+struct Vertex3D {
+	float x, y, z;
 };
 
 //Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
@@ -81,7 +85,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	//TODO: can probably generate this on GPU?
 	this->fieldSize = 20000;
 	int subdivisions = 400;
-	std::vector<Vertex> verts;
+	std::vector<Vertex2D> verts;
 	for (int stepIndexY = 0; stepIndexY < subdivisions; ++stepIndexY)
 	{
 		float sy = fieldSize / subdivisions * stepIndexY - fieldSize / 2;
@@ -90,7 +94,7 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 		{
 			float sx = fieldSize / subdivisions * stepIndexX - fieldSize / 2;
 			float snx = fieldSize / subdivisions * (stepIndexX+1) - fieldSize / 2;
-			Vertex v;
+			Vertex2D v;
 			v.x = sx;
 			v.y = sy;
 			verts.emplace_back(v);
@@ -112,14 +116,14 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex);
-	vertexBufferDesc.StructureByteStride = sizeof(Vertex);
+	vertexBufferDesc.ByteWidth = verts.size()*sizeof(Vertex2D);
+	vertexBufferDesc.StructureByteStride = sizeof(Vertex2D);
 
 	D3D11_SUBRESOURCE_DATA vertexBufferSubresourceData;
 	vertexBufferSubresourceData.pSysMem = verts.data();
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&vertexBufferDesc, &vertexBufferSubresourceData, &this->vertexBuffer), "Create vertex buffer", this->gfx.device.Get());
 
-	UINT vbStrides[] = { sizeof(Vertex) };
+	UINT vbStrides[] = { sizeof(Vertex2D) };
 	UINT vbOffsets[] = { 0 };
 	this->gfx.deviceContext->IASetVertexBuffers(0, 1, this->vertexBuffer.GetAddressOf(), vbStrides, vbOffsets);
 	this->gfx.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
