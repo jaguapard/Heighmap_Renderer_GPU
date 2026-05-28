@@ -7,6 +7,15 @@
 #include "CubemapTexture.h"
 
 class Graphics;
+//Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
+//Yes, the memory is wasted, but whatever. If you really want to, you can pack many smaller values into XMVECTOR.
+struct alignas(16) ConstantBuffer
+{
+	DirectX::XMMATRIX view, projection, viewProjection;
+	DirectX::XMVECTOR time, fieldSize;
+	DirectX::XMVECTOR camPos, lightDir;
+};
+
 class Game
 {
 public:
@@ -26,6 +35,7 @@ private:
 	float flySpeed = 2500;
 	float fieldSize;
 	UINT vertexCount, skyCubeVertexCount;
+	ConstantBuffer mainCB_CPU;
 	DirectX::XMVECTOR camPos, camAng, lightDir;
 	Shader<ID3D11VertexShader> mainVS, skyboxVS;
 	Shader<ID3D11PixelShader> mainPS, skyboxPS;

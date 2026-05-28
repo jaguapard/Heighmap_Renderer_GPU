@@ -15,15 +15,6 @@ struct Vertex3D {
 	float x, y, z, u, v;
 };
 
-//Note to self: don't use members of sizes != integer multiple of 16. That introduces silent disagreement between CPU and GPU side.
-//Yes, the memory is wasted, but whatever. If you really want to, you can pack many smaller values into XMVECTOR.
-struct alignas(16) ConstantBuffer
-{
-	XMMATRIX transformation;
-	XMVECTOR time, fieldSize;
-	XMVECTOR camPos, lightDir;
-};
-
 
 Game::Game(Graphics& gfx) :gfx(gfx)
 {
@@ -344,16 +335,17 @@ void Game::draw()
 	XMMATRIX translation = XMMatrixTranslation(-this->camPos.vector4_f32[0], -this->camPos.vector4_f32[1], -this->camPos.vector4_f32[2]);
 	XMMATRIX view = translation * XMMatrixTranspose(rotation);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, float(this->gfx.w) / float(this->gfx.h), 100000.f, 0.1f);
-	XMMATRIX transform = view * projection;
 
+	this->mainCB_CPU.camPos = this->camPos;
+	this->mainCB_CPU.lightDir = XMVector3Normalize(this->lightDir);
+	this->mainCB_CPU.view = XMMatrixTranspose(view);
+	this->mainCB_CPU.projection = XMMatrixTranspose(projection);
+	this->mainCB_CPU.viewProjection = XMMatrixTranspose(view * projection);
+	this->mainCB_CPU.time = XMVectorSet(this->gameTime, this->globalTime, 0, 0);
+	this->mainCB_CPU.fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
 	D3D11_MAPPED_SUBRESOURCE mappedCb = {};
 	DX_THROW_ON_FAIL(this->gfx.deviceContext->Map(this->mainConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCb), "Constant buffer map");
-	ConstantBuffer* cb = (ConstantBuffer*)mappedCb.pData;
-	cb->transformation = XMMatrixTranspose(transform);
-	cb->time = XMVectorSet(this->gameTime, 0, 0, 0);
-	cb->fieldSize = XMVectorSet(this->fieldSize, 0, 0, 0);
-	cb->camPos = this->camPos;
-	cb->lightDir = XMVector3Normalize(this->lightDir);
+	memcpy(mappedCb.pData, &this->mainCB_CPU, sizeof(this->mainCB_CPU));
 	this->gfx.deviceContext->Unmap(this->mainConstantBuffer.Get(), 0);
 
 	this->gfx.deviceContext->OMSetRenderTargets(1, this->gfx.mainRenderTargetView.GetAddressOf(), this->depthStencilView.Get());
