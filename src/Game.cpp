@@ -145,10 +145,18 @@ Game::Game(Graphics& gfx) :gfx(gfx)
 	DX_THROW_ON_FAIL(this->gfx.device->CreateBuffer(&cbd, &csd, &this->mainConstantBuffer), "Create constant buffer");
 
 	//Create skybox cubemap and sampler
-	std::array<std::string, 6> skyboxCubemapPaths;
+	std::array<std::string, 6> skyboxCubemapPaths = {
+		//https://svs.gsfc.nasa.gov/4851
+		"images/sky/v2_px.png",
+		"images/sky/v2_nx.png",
+		"images/sky/v2_py.png",
+		"images/sky/v2_ny.png",
+		"images/sky/v2_pz.png",
+		"images/sky/v2_nz.png",
+	};
 	for (int i = 0; i < 6; ++i)
 	{
-		skyboxCubemapPaths[i] = "images/sky/" + std::to_string(i) + ".png";
+		//skyboxCubemapPaths[i] = "images/sky/" + std::to_string(i) + ".png";
 	}
 	this->skyboxCubemap = CubemapTexture(skyboxCubemapPaths, this->gfx);
 
